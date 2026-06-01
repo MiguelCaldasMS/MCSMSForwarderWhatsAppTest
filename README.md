@@ -80,19 +80,6 @@ Notes:
 - There are no template approvals, no 24-hour windows, no recipient lists — your bot can send anything to its allowed chats indefinitely.
 - The bot token grants full control of the bot. Treat it like a password.
 
-## Why not Signal?
-
-Signal does **not** offer an official Bot API and never has — by design, every Signal participant must be a fully registered account tied to a real phone number, and there is no first-party server-to-client send endpoint that an app like this could call.
-
-The only realistic option is [**`signal-cli`**](https://github.com/AsamK/signal-cli) (community project, reverse-engineered protocol). Using it from this Android app is not practical:
-
-- It is a **JVM (Java) daemon** designed to run on a desktop / server / Raspberry Pi, not on Android. It depends on `libsignal` native libraries built for x86_64 / ARM Linux glibc, not for Android's runtime.
-- Even if you bundled it, Signal requires you to **register a dedicated phone number** with the Signal service (SMS verification), which then becomes that device's primary Signal identity. You cannot share an existing Signal account between your phone and `signal-cli` without breaking it.
-- The only Android-friendly path would be to host `signal-cli` (or [`signal-cli-rest-api`](https://github.com/bbernhard/signal-cli-rest-api)) on a separate always-on machine and have this app call that REST endpoint — effectively a self-hosted Signal gateway. That's a separate project, not a third channel inside this one.
-- Signal's own ToS explicitly prohibit automated / bulk messaging, so even a self-hosted gateway is fragile.
-
-**Recommendation:** Telegram is the right secondary channel for this app. If a Signal channel is ever wanted, it should be implemented as an HTTP push to an external `signal-cli-rest-api` instance you host yourself — not as in-process code.
-
 ## In-app configuration
 
 Settings screen:
