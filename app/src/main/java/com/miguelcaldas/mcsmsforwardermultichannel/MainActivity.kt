@@ -26,6 +26,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.snackbar.Snackbar
@@ -278,8 +279,14 @@ class MainActivity : AppCompatActivity() {
     ) {
         val row = LayoutInflater.from(this)
             .inflate(R.layout.item_readiness, readinessContainer, false) as ViewGroup
-        row.findViewById<ImageView>(R.id.readinessIcon).setImageResource(
-            if (ok) R.drawable.ic_check_24 else R.drawable.ic_warning_24
+        val icon = row.findViewById<ImageView>(R.id.readinessIcon)
+        icon.setImageResource(if (ok) R.drawable.ic_check_24 else R.drawable.ic_warning_24)
+        icon.setColorFilter(
+            MaterialColors.getColor(
+                icon,
+                if (ok) androidx.appcompat.R.attr.colorPrimary
+                else androidx.appcompat.R.attr.colorError
+            )
         )
         row.findViewById<TextView>(R.id.readinessLabel).text = label
         val fix = row.findViewById<MaterialButton>(R.id.readinessFix)

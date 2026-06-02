@@ -12,7 +12,7 @@ import com.miguelcaldas.mcsmsforwardermultichannel.util.RegexListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderMatcher
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsConfig
-import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsForwardChannel
+import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsChannel
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramChannel
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramConfig
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TextNormalizer
@@ -129,7 +129,7 @@ class SmsReceiver : BroadcastReceiver() {
                 context,
                 "REAL SEND [SMS] \u2192 To: ${smsConfig.destination} | Msg: $outgoingBody"
             )
-            SmsForwardChannel.send(context, smsConfig, outgoingBody, onChannelDone)
+            SmsChannel.send(context, smsConfig, outgoingBody, onChannelDone)
         }
     }
 }

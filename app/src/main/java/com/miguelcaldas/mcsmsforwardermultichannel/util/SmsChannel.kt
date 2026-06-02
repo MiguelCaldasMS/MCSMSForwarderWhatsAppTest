@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Forward stats are owned by SmsReceiver (a single increment per matched SMS,
  * regardless of channel), so this channel only logs; it never records stats.
  */
-object SmsForwardChannel {
+object SmsChannel {
 
     private const val ACTION = "com.miguelcaldas.mcsmsforwardermultichannel.SMS_SENT_RESULT"
     private const val EXTRA_DESTINATION = "destination"

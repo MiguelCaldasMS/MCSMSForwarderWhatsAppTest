@@ -13,12 +13,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import com.miguelcaldas.mcsmsforwardermultichannel.util.ForwardTemplate
 import com.miguelcaldas.mcsmsforwardermultichannel.util.LogUtils
 import com.miguelcaldas.mcsmsforwardermultichannel.util.RegexListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderMatcher
+import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsConfig
+import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramConfig
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TextNormalizer
 import com.miguelcaldas.mcsmsforwardermultichannel.util.WhatsAppConfig
 
@@ -68,11 +71,13 @@ class RegexTesterActivity : AppCompatActivity() {
 
         if (sender.isEmpty() || message.isEmpty() || pattern.isEmpty()) {
             testResult.text = "Fill sender, message, and pattern to test."
+            tintResult(ResultTone.NEUTRAL)
             return
         }
 
         val regex = runCatching { Regex(pattern) }.getOrElse {
             testResult.text = "Invalid regex: ${it.message}"
+            tintResult(ResultTone.ERROR)
             return
         }
 
@@ -83,34 +88,59 @@ class RegexTesterActivity : AppCompatActivity() {
         val normalized = TextNormalizer.normalizeForMatching(message)
         val patternMatches = regex.containsMatchIn(normalized)
 
+        // Mirror the live pipeline: a channel only fires when it is *operational*
+        // (its toggle is on AND its credentials are complete). Evaluate all three so
+        // the dry-run never disagrees with SmsReceiver.
         val waConfig = WhatsAppConfig.load(prefs)
+        val tgConfig = TelegramConfig.load(prefs)
+        val smsConfig = SmsConfig.load(prefs)
+        val operationalChannels = buildList {
+            if (waConfig.isOperational) add("WhatsApp ${waConfig.recipient}")
+            if (tgConfig.isOperational) add("Telegram chat ${tgConfig.chatId}")
+            if (smsConfig.isOperational) add("SMS ${smsConfig.destination}")
+        }
+
         val template = prefs.getString("forwardTemplate", "").orEmpty()
         val outgoingBody = if (template.isEmpty()) message
         else ForwardTemplate.apply(template, sender, System.currentTimeMillis(), message)
 
-        val pipelineWouldSend = senderAllowed && patternMatches && waConfig.hasCredentials
+        val pipelineWouldSend = senderAllowed && patternMatches && operationalChannels.isNotEmpty()
 
         val builder = StringBuilder()
         builder.append("Sender allowed: ").append(if (senderAllowed) "yes" else "no")
             .append(" (against ").append(allowedSenders.size).append(" entries)\n")
         builder.append("Pattern matches: ").append(if (patternMatches) "yes" else "no").append('\n')
-        builder.append("WhatsApp credentials: ")
-            .append(if (waConfig.hasCredentials) "complete" else "missing").append('\n')
-        builder.append("Recipient: ")
-            .append(if (waConfig.recipient.isNotBlank()) waConfig.recipient else "(none)").append('\n')
+        builder.append("Operational channels: ")
+            .append(if (operationalChannels.isEmpty()) "none" else operationalChannels.joinToString(", "))
+            .append('\n')
         builder.append('\n')
         if (pipelineWouldSend) {
-            builder.append("Would forward to WhatsApp ").append(waConfig.recipient).append(":\n")
+            builder.append("Would forward to ").append(operationalChannels.joinToString(", ")).append(":\n")
             builder.append('"').append(outgoingBody).append('"')
         } else {
             builder.append("Would not forward.")
         }
 
         testResult.text = builder.toString()
+        tintResult(if (pipelineWouldSend) ResultTone.POSITIVE else ResultTone.NEUTRAL)
 
         if (pipelineWouldSend) {
-            LogUtils.addToLog(this, "FAKE SEND \u2192 to ${waConfig.recipient}: \"$outgoingBody\"")
+            LogUtils.addToLog(
+                this,
+                "FAKE SEND \u2192 to ${operationalChannels.joinToString(", ")}: \"$outgoingBody\""
+            )
         }
+    }
+
+    private enum class ResultTone { NEUTRAL, POSITIVE, ERROR }
+
+    private fun tintResult(tone: ResultTone) {
+        val attr = when (tone) {
+            ResultTone.POSITIVE -> androidx.appcompat.R.attr.colorPrimary
+            ResultTone.ERROR -> androidx.appcompat.R.attr.colorError
+            ResultTone.NEUTRAL -> com.google.android.material.R.attr.colorOnSurface
+        }
+        testResult.setTextColor(MaterialColors.getColor(testResult, attr))
     }
 
     private fun saveCurrentPattern() {

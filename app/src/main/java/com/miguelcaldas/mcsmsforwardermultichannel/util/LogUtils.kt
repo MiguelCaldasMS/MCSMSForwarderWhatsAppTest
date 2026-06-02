@@ -27,13 +27,21 @@ object LogUtils {
 
     private data class Entry(val timestamp: Long, val message: String)
 
+    // The on-disk format is line-oriented (`timestamp\x1Fmessage`, entries joined by
+    // '\n'), so a message that itself contains a newline or the field separator would
+    // break parsing and silently truncate the entry. Forwarded SMS bodies (logged in
+    // the REAL SEND entries) routinely contain line breaks, so collapse any CR/LF/0x1F
+    // run to a single space before storing — the log viewer renders one line per entry.
+    private val CONTROL_RUN = Regex("[\\r\\n\\u001F]+")
+
     fun addToLog(context: Context, logEntry: String) {
         val appContext = context.applicationContext
         val timestamp = System.currentTimeMillis()
+        val sanitized = CONTROL_RUN.replace(logEntry, " ")
         writeExecutor.execute {
             val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val entries = loadEntries(prefs).toMutableList()
-            entries.add(Entry(timestamp, logEntry))
+            entries.add(Entry(timestamp, sanitized))
             val pruned = prune(entries)
             prefs.edit { putString(LOGS_KEY, serialize(pruned)) }
         }

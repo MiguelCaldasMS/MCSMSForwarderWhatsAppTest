@@ -28,7 +28,7 @@ import com.miguelcaldas.mcsmsforwardermultichannel.util.RegexListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderMatcher
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsConfig
-import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsForwardChannel
+import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsChannel
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramChannel
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramConfig
 import com.miguelcaldas.mcsmsforwardermultichannel.util.WhatsAppCloudChannel
@@ -345,7 +345,7 @@ class SettingsActivity : AppCompatActivity() {
         val body = "MC SMS\u2192WhatsApp Test \u2014 manual test send at ${System.currentTimeMillis()}"
         LogUtils.addToLog(
             this,
-            "REAL SEND \u2192 To: ${config.recipient} | Msg: $body (manual test)"
+            "REAL SEND [WhatsApp] \u2192 To: ${config.recipient} | Msg: $body (manual test)"
         )
         WhatsAppCloudChannel.send(this, config, body)
         Snackbar.make(rootContainer, "Sending test message\u2026 see Activity log.", Snackbar.LENGTH_SHORT).show()
@@ -385,7 +385,7 @@ class SettingsActivity : AppCompatActivity() {
             this,
             "REAL SEND [SMS] \u2192 To: ${config.destination} | Msg: $body (manual test)"
         )
-        SmsForwardChannel.send(this, config, body)
+        SmsChannel.send(this, config, body)
         Snackbar.make(rootContainer, "Sending SMS test\u2026 see Activity log.", Snackbar.LENGTH_SHORT).show()
     }
 

@@ -1,29 +1,37 @@
-# MC SMS → WhatsApp / Telegram Test
+# MC SMS Forwarder (Multi-Channel)
 
-Sister project to **MC SMS Forwarder**. Listens for incoming SMS on an Android device, runs them through the same sender/regex filter pipeline, and forwards the matched body to **WhatsApp** (via the [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/)) and/or **Telegram** (via the [Telegram Bot API](https://core.telegram.org/bots/api)). Both outbound channels are independently toggleable; you can enable one, the other, or both at once.
+Listens for incoming SMS on an Android device, runs them through a sender/regex filter pipeline, and re-sends the matched body through any combination of three outbound channels:
 
-> **Test variant.** All credentials (WhatsApp access token, Telegram bot token) are stored as plain text in the app's private `SharedPreferences`. Only install on a device you fully control, and use the narrowest credentials you can.
+- **WhatsApp** — via the [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/).
+- **Telegram** — via the [Telegram Bot API](https://core.telegram.org/bots/api).
+- **SMS** — re-sent from this device's own SIM via `SmsManager`.
+
+Each channel is independently toggleable; enable one, two, or all three at once.
+
+> **Test variant.** All credentials (WhatsApp access token, Telegram bot token) are stored as plain text in the app's private `SharedPreferences`. The SMS channel needs no token — it uses the device modem. Only install on a device you fully control, and use the narrowest credentials you can.
 
 ## What it does
 
 - `BroadcastReceiver` listens to `SMS_RECEIVED`.
 - Reassembles multipart messages.
-- Drops everything unless **master switch** is on.
+- Drops everything unless the **master switch** is on.
+- Suppresses any message that arrives from the **SMS forward destination** (loop guard, SMS channel only).
 - Matches the sender against the **allowed senders** list (E.164 phone numbers via `PhoneNumberUtils.areSamePhoneNumber`, or case-insensitive exact match for alphanumeric IDs).
 - Normalizes the body (NFD + strip combining marks + lowercase) and matches it against **any** of the configured regex patterns.
 - Optionally re-formats the outgoing text with a template (`%s` = source, `%t` = time, `%m` = original message).
-- Sends the result through **every enabled channel**:
+- Sends the result through **every operational channel** (toggle on AND credentials present):
   - **WhatsApp** — `POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a `Bearer` token, as either a free-form `text` message (inside the customer 24‑hour window) or an **approved template** with the SMS body bound to a single body parameter.
   - **Telegram** — `POST https://api.telegram.org/bot{TOKEN}/sendMessage` with `chat_id` + `text` (web previews disabled).
+  - **SMS** — `SmsManager.sendMultipartTextMessage` to the configured destination number; per-segment modem results are surfaced in the activity log.
 
-The reception, filtering, normalization, multipart handling, and template logic are intentionally **byte-for-byte** identical to the upstream SMS forwarder. Only the outbound channels changed.
+The reception, filtering, normalization, multipart handling, and template logic are shared by all channels.
 
 ## What is NOT included
 
-- No retry / backoff queue (SMS provider does that for the upstream project; the Cloud API and Bot API both require app-side handling and that's out of scope for this test variant).
+- No retry / backoff queue. The HTTP channels report 2xx/non-2xx synchronously; the SMS channel reports the modem result asynchronously in the log. Neither retries.
 - No webhook server for delivery receipts.
 - No media (image/audio/document) forwarding — text only.
-- No loop-guard: SMS arriving on your phone can never re-trigger a WhatsApp or Telegram send back to that same SMS sender, so the guard from the upstream project is gone.
+- **Loop guard is SMS-only.** A message arriving from the SMS forward destination is suppressed so an SMS→SMS echo cannot bounce indefinitely. WhatsApp and Telegram run on a different transport and cannot re-trigger the pipeline, so they need no guard.
 
 ## Build & install
 
@@ -80,6 +88,20 @@ Notes:
 - There are no template approvals, no 24-hour windows, no recipient lists — your bot can send anything to its allowed chats indefinitely.
 - The bot token grants full control of the bot. Treat it like a password.
 
+## One-time SMS setup
+
+The SMS channel re-sends matched messages from **this device's own SIM** — there is no account or token to configure, only a destination number.
+
+1. In this app's Settings, expand the **SMS** section.
+2. Flip **Forward to SMS** on and enter the **Destination number** in E.164 form (`+35191XXXXXXX`).
+3. Grant the **Send SMS** runtime permission when prompted (the readiness checklist on the main screen has a **Grant** shortcut).
+4. Use the **Send SMS test message** button to confirm. The per-segment modem result (`SEND OK [SMS]`, `no service`, `radio off`, …) appears in the activity log.
+
+Notes:
+- Carrier SMS charges apply to every forwarded message.
+- If the destination number is **also an allowed sender**, the loop guard suppresses its replies so the app can't ping-pong with itself. Settings warns you when it detects this overlap.
+- A successful *dispatch* (handed to the modem without error) is what the pipeline counts; the eventual delivery result is logged separately and asynchronously.
+
 ## In-app configuration
 
 Settings screen:
@@ -106,15 +128,21 @@ Settings screen:
 - **Chat ID** — numeric (positive for DMs, negative for groups).
 - **Send Telegram test message** button — POSTs a synthetic message to the chat ID using your current Telegram settings.
 
+**SMS**
+
+- **Forward to SMS** — master toggle for the channel (off by default).
+- **Destination number** — where matched messages are re-sent, in E.164 form (`+35191XXXXXXX`).
+- **Send SMS test message** button — re-sends a synthetic message from this device's SIM to the destination.
+
 A SMS is forwarded to **every channel whose toggle is on and whose credentials are complete**. Each successful or failed delivery is logged separately. The activity stats counter increments **once per matched SMS**, regardless of how many channels accepted it.
 
 ## Architecture
 
 Single-module Android app (`:app`), Kotlin, no Compose — XML layouts with Material 3.
 
-**Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`mc_sms_fwd_wa`/`master_enabled`, default ON) → bail if no channel is operational (enabled toggle on AND credentials present) → reassemble multipart → match sender via `SenderMatcher` → normalize body via `TextNormalizer.normalizeForMatching` → compile each regex once and match any → apply optional `ForwardTemplate` → `BroadcastReceiver.goAsync()` → fan out the same body to **every operational channel** in parallel. A shared `AtomicInteger` counts pending channel callbacks; once they all complete, the receiver records exactly one stat (if any channel succeeded) and calls `pending.finish()`.
+**Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`mc_sms_fwd_wa`/`master_enabled`, default ON) → bail if no channel is operational (enabled toggle on AND credentials present) → reassemble multipart → SMS loop guard (suppress messages from the SMS forward destination) → match sender via `SenderMatcher` → normalize body via `TextNormalizer.normalizeForMatching` → compile each regex once and match any → apply optional `ForwardTemplate` → `BroadcastReceiver.goAsync()` → fan out the same body to **every operational channel** in parallel. A shared `AtomicInteger` counts pending channel callbacks; once they all complete, the receiver records exactly one stat (if any channel succeeded) and calls `pending.finish()`.
 
-`WhatsAppCloudChannel` and `TelegramChannel` are sibling singletons. Each uses `HttpURLConnection` on its own single-thread daemon executor (`wa-sender`, `tg-sender`), 10 s connect / 20 s read. Each reports its own `SEND OK [WhatsApp]` / `SEND OK [Telegram]` (or `SEND FAILED`) entry to the activity log with the HTTP status and provider-specific error summary (Meta `error.{code,type,message}` for WhatsApp, Telegram `error_code` + `description` for Telegram). Neither channel ever logs its bearer/bot token.
+`WhatsAppCloudChannel`, `TelegramChannel`, and `SmsChannel` are sibling singletons. The two HTTP channels use `HttpURLConnection` on their own single-thread daemon executor (`wa-sender`, `tg-sender`), 10 s connect / 20 s read, and report `SEND OK`/`SEND FAILED` with the HTTP status and provider-specific error summary (Meta `error.{code,type,message}` for WhatsApp, Telegram `error_code` + `description` for Telegram). Neither ever logs its bearer/bot token. `SmsChannel` dispatches through `SmsManager.sendMultipartTextMessage` and registers a private result receiver that logs the modem's per-segment outcome. Stats are owned solely by `SmsReceiver` — the channels only log.
 
 ## License
 
