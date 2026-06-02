@@ -56,7 +56,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Credentials from your Meta for Developers app. The access token is stored as plain text on this device — only install on devices you control."
+                android:text="Credentials from your Meta for Developers app. The access token is encrypted at rest and write-only here — once saved it is never shown again."
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -247,7 +247,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Create a bot via @BotFather, copy its token, /start the bot from your account, then paste your chat ID below. Bot tokens are stored as plain text on this device."
+                android:text="Create a bot via @BotFather, copy its token, /start the bot from your account, then paste your chat ID below. The bot token is encrypted at rest and write-only here — once saved it is never shown again."
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 

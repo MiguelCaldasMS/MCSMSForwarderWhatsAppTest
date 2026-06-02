@@ -10,6 +10,14 @@ Each channel is independently toggleable; enable one, two, or all three at once.
 
 > **Test variant.** The WhatsApp access token and Telegram bot token are stored **encrypted at rest** (Android Keystore-backed `EncryptedSharedPreferences`, separate from the app's plaintext `SharedPreferences`) and are **write-only** in the UI — once saved they are never re-displayed. The SMS channel needs no token — it uses the device modem. Even so, only install on a device you fully control, and use the narrowest credentials you can.
 
+## Screenshots
+
+| Main / readiness | Activity log |
+| --- | --- |
+| ![Main screen with the forwarding master switch, a green readiness checklist, and forwarded-message stats](docs/screenshots/main.png) | ![Activity log showing colour-coded SEND OK and SEND FAILED entries with filter chips](docs/screenshots/activity-log.png) |
+
+The main screen surfaces a **readiness checklist** (every prerequisite for the enabled channels must be green before messages forward) and lifetime forwarding stats. The **activity log** colour-codes successes (green) and failures (red), with filter chips to narrow by outcome.
+
 ## What it does
 
 - `BroadcastReceiver` listens to `SMS_RECEIVED`.
@@ -61,6 +69,10 @@ The quickest and cheapest path is to use the **test phone number** that Meta pro
    4. Click **Generate new token** → pick your app → **Token expiration: Never** → select scopes `whatsapp_business_messaging` and `whatsapp_business_management` → **Generate token** → copy it once (you cannot view it again).
 6. In this app's Settings: paste **Phone Number ID**, **Access token**, and **Recipient** (E.164, e.g. `+3519...`). Leave **Send as approved template** ON and use the prebuilt `hello_world` / `en_US` for the very first ping, then either switch templates or turn the toggle off and rely on the 24-hour service window.
 
+![WhatsApp Cloud API settings: Phone Number ID, write-only Access token field, recipient, and approved-template toggle](docs/screenshots/settings-whatsapp.png)
+
+The **Access token** field is write-only: once saved it loads blank with a "Saved (hidden)" hint — type a new value to replace it, or leave it blank to keep the stored token.
+
 Notes:
 - The test number itself is permanent for the life of the WABA — do **not** delete it from *API Setup*.
 - Recipient numbers must be **opted-in** (the 6-digit confirmation flow above does that). Adding new ones requires the same confirmation.
@@ -82,6 +94,10 @@ If you need to send from your real number instead of the test number, you'll hav
    - Or, in a browser: `https://api.telegram.org/bot<TOKEN>/getUpdates` and look for `"chat":{"id":...}` in the JSON.
    - For a group, add the bot to the group, send a message, then call `getUpdates` — group IDs are negative numbers (e.g. `-1001234567890`).
 6. In this app's Settings, expand the **Telegram Bot API** section, paste the **Bot token** and **Chat ID**, then flip **Forward to Telegram** on. Use the **Send Telegram test message** button to confirm.
+
+![Telegram Bot API and SMS settings sections, each with an enable toggle, write-only credential field, and a test-message button](docs/screenshots/settings-telegram-sms.png)
+
+The **Bot token** field is write-only, just like the WhatsApp token. The **SMS** section below it has no secret \u2014 only a destination number.
 
 Notes:
 - Telegram bots can DM only users who have started the bot at least once — same reason as step 4.
