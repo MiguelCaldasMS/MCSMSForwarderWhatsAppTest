@@ -1,6 +1,7 @@
 package com.miguelcaldas.mcsmsforwardermultichannel.util
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 object SenderListStore {
     private const val KEY = "allowedSenders"
@@ -14,6 +15,6 @@ object SenderListStore {
 
     fun save(prefs: SharedPreferences, senders: List<String>) {
         val normalized = senders.map { it.trim() }.filter { it.isNotEmpty() }
-        prefs.edit().putString(KEY, normalized.joinToString("\n")).apply()
+        prefs.edit { putString(KEY, normalized.joinToString("\n")) }
     }
 }

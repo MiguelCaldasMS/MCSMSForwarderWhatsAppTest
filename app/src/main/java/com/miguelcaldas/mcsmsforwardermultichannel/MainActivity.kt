@@ -191,8 +191,8 @@ class MainActivity : AppCompatActivity() {
             onFix = { requestIgnoreBatteryOptimizations() }
         )
 
-        val waConfig = WhatsAppConfig.load(prefs)
-        val tgConfig = TelegramConfig.load(prefs)
+        val waConfig = WhatsAppConfig.load(this)
+        val tgConfig = TelegramConfig.load(this)
         val smsConfig = SmsConfig.load(prefs)
         addReadinessRow(
             "At least one channel enabled",

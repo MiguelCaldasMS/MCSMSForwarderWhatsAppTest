@@ -1,6 +1,6 @@
 package com.miguelcaldas.mcsmsforwardermultichannel.util
 
-import android.content.SharedPreferences
+import android.content.Context
 
 /**
  * In-memory snapshot of the WhatsApp Cloud API credentials and template
@@ -27,9 +27,10 @@ data class WhatsAppConfig(
         get() = enabled && isComplete
 
     companion object {
+        const val PREFS_NAME = "mc_sms_fwd_wa"
+
         const val KEY_ENABLED = "waEnabled"
         const val KEY_PHONE_NUMBER_ID = "waPhoneNumberId"
-        const val KEY_ACCESS_TOKEN = "waAccessToken"
         const val KEY_RECIPIENT = "waRecipient"
         const val KEY_USE_TEMPLATE = "waUseTemplate"
         const val KEY_TEMPLATE_NAME = "waTemplateName"
@@ -37,16 +38,20 @@ data class WhatsAppConfig(
 
         const val DEFAULT_TEMPLATE_LANGUAGE = "en_US"
 
-        fun load(prefs: SharedPreferences): WhatsAppConfig = WhatsAppConfig(
-            // Default true so existing installs keep forwarding to WhatsApp after upgrade.
-            enabled = prefs.getBoolean(KEY_ENABLED, true),
-            phoneNumberId = prefs.getString(KEY_PHONE_NUMBER_ID, "").orEmpty().trim(),
-            accessToken = prefs.getString(KEY_ACCESS_TOKEN, "").orEmpty().trim(),
-            recipient = prefs.getString(KEY_RECIPIENT, "").orEmpty().trim(),
-            useTemplate = prefs.getBoolean(KEY_USE_TEMPLATE, true),
-            templateName = prefs.getString(KEY_TEMPLATE_NAME, "").orEmpty().trim(),
-            templateLanguage = prefs.getString(KEY_TEMPLATE_LANGUAGE, DEFAULT_TEMPLATE_LANGUAGE)
-                .orEmpty().ifBlank { DEFAULT_TEMPLATE_LANGUAGE },
-        )
+        fun load(context: Context): WhatsAppConfig {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return WhatsAppConfig(
+                // Default true so existing installs keep forwarding to WhatsApp after upgrade.
+                enabled = prefs.getBoolean(KEY_ENABLED, true),
+                phoneNumberId = prefs.getString(KEY_PHONE_NUMBER_ID, "").orEmpty().trim(),
+                // The access token is held encrypted-at-rest, not in the plaintext prefs.
+                accessToken = SecureStore.read(context, SecureStore.KEY_WA_ACCESS_TOKEN),
+                recipient = prefs.getString(KEY_RECIPIENT, "").orEmpty().trim(),
+                useTemplate = prefs.getBoolean(KEY_USE_TEMPLATE, true),
+                templateName = prefs.getString(KEY_TEMPLATE_NAME, "").orEmpty().trim(),
+                templateLanguage = prefs.getString(KEY_TEMPLATE_LANGUAGE, DEFAULT_TEMPLATE_LANGUAGE)
+                    .orEmpty().ifBlank { DEFAULT_TEMPLATE_LANGUAGE },
+            )
+        }
     }
 }

@@ -17,7 +17,13 @@
 			"git mv": true,
 			"git -C c:\\Projects\\MCSMSForwarderMultiChannel": true,
 			"Set-Content": true,
-			"git push": true
+			"git push": true,
+			"Get-Command": true,
+			"adb": true,
+			"&": true,
+			"ForEach-Object": true,
+			"Rename-Item": true,
+			"Copy-Item": true
 		}
 	}
 }

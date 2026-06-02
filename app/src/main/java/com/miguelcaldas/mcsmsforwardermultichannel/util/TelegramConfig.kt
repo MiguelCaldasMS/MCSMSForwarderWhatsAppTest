@@ -1,6 +1,6 @@
 package com.miguelcaldas.mcsmsforwardermultichannel.util
 
-import android.content.SharedPreferences
+import android.content.Context
 
 /**
  * Immutable snapshot of the Telegram bot credentials persisted in SharedPreferences.
@@ -18,14 +18,19 @@ data class TelegramConfig(
         get() = enabled && hasCredentials
 
     companion object {
+        const val PREFS_NAME = "mc_sms_fwd_wa"
+
         const val KEY_ENABLED = "tgEnabled"
-        const val KEY_BOT_TOKEN = "tgBotToken"
         const val KEY_CHAT_ID = "tgChatId"
 
-        fun load(prefs: SharedPreferences): TelegramConfig = TelegramConfig(
-            enabled = prefs.getBoolean(KEY_ENABLED, false),
-            botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty().trim(),
-            chatId = prefs.getString(KEY_CHAT_ID, "").orEmpty().trim(),
-        )
+        fun load(context: Context): TelegramConfig {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return TelegramConfig(
+                enabled = prefs.getBoolean(KEY_ENABLED, false),
+                // The bot token is held encrypted-at-rest, not in the plaintext prefs.
+                botToken = SecureStore.read(context, SecureStore.KEY_TG_BOT_TOKEN),
+                chatId = prefs.getString(KEY_CHAT_ID, "").orEmpty().trim(),
+            )
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.miguelcaldas.mcsmsforwardermultichannel.util
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 object RegexListStore {
     private const val KEY = "messageFormat"
@@ -16,6 +17,6 @@ object RegexListStore {
 
     fun save(prefs: SharedPreferences, patterns: List<String>) {
         val normalized = patterns.filter { it.isNotBlank() }
-        prefs.edit().putString(KEY, normalized.joinToString("\n")).apply()
+        prefs.edit { putString(KEY, normalized.joinToString("\n")) }
     }
 }

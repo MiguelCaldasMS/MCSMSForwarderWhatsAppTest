@@ -74,11 +74,16 @@ database. Lists (senders, regexes) are newline-delimited strings. Logs use a
 `timestamp\x1Fmessage` format with auto-pruning (35 days / 2000 entries); `LogUtils.addToLog`
 collapses CR/LF/`\x1F` runs in the message to a space so multi-line bodies can't corrupt the
 line-oriented format. WhatsApp credentials live under keys defined in `WhatsAppConfig`:
-`waPhoneNumberId`, `waAccessToken`, `waRecipient`, `waUseTemplate` (default true), `waTemplateName`,
+`waPhoneNumberId`, `waRecipient`, `waUseTemplate` (default true), `waTemplateName`,
 `waTemplateLanguage` (default `en_US`), `waEnabled` (default true). Telegram: `tgEnabled` (default
-false), `tgBotToken`, `tgChatId` (`TelegramConfig`). SMS: `smsEnabled` (default false) and
+false), `tgChatId` (`TelegramConfig`). SMS: `smsEnabled` (default false) and
 `forwardTo` — the destination key is reused from the legacy single-channel app so a migrated
-install keeps its number (`SmsConfig`).
+install keeps its number (`SmsConfig`). **Secrets (the WhatsApp access token `waAccessToken` and
+the Telegram bot token `tgBotToken`) are NOT in this file** — they live encrypted-at-rest in a
+separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via `SecureStore`, which also
+migrates any legacy plaintext token out of `mc_sms_fwd_wa` on first read. Configs read tokens by
+calling `SecureStore.read(context, …)`, so `WhatsAppConfig.load`/`TelegramConfig.load` take a
+`Context` (not a `SharedPreferences`).
 
 **Activities** are plain `AppCompatActivity` subclasses — no fragments, no ViewModel, no
 navigation component. Settings fields are **debounced-saved** (~150 ms after the last keystroke
@@ -92,7 +97,7 @@ state restore doesn't copy the last-focused row's text onto every row after recr
   `SharedPreferences` or `Context` as parameters — no dependency injection. Current set:
   `SenderListStore`, `RegexListStore`, `SenderMatcher`, `TextNormalizer`, `ForwardTemplate`,
   `ForwardStatsStore`, `WhatsAppConfig`, `WhatsAppCloudChannel`, `TelegramConfig`,
-  `TelegramChannel`, `SmsConfig`, `SmsChannel`, `LogUtils`.
+  `TelegramChannel`, `SmsConfig`, `SmsChannel`, `SecureStore`, `LogUtils`.
 - **Edge-to-edge** + insets handling is repeated in every activity's `onCreate` using
   `enableEdgeToEdge()` and `ViewCompat.setOnApplyWindowInsetsListener`.
 - **Regex matching** uses `TextNormalizer.normalizeForMatching` (NFD + strip combining marks +
@@ -102,9 +107,13 @@ state restore doesn't copy the last-focused row's text onto every row after recr
   `app/build.gradle.kts` references them via `libs.*`.
 - Release signing is opt-in via Gradle properties (`RELEASE_KEYSTORE_PATH`, etc.). No keystore
   or access token is committed to the repository.
-- The access token is stored as plain text in `SharedPreferences` for this test variant — never
-  write it to logs, never include it in error messages, never paste it into bug reports. The same
-  rule applies to the Telegram bot token. The SMS channel has no secret (it uses the device modem).
+- The WhatsApp access token and Telegram bot token are stored **encrypted at rest** via
+  `SecureStore` (`EncryptedSharedPreferences`), never in the plaintext `mc_sms_fwd_wa` prefs —
+  never write them to logs, never include them in error messages, never paste them into bug
+  reports. In the Settings UI the token fields are **write-only**: the saved value is never
+  re-displayed (the field loads blank with a "saved" helper text); typing replaces the stored
+  token, while leaving the field blank keeps the existing one. The SMS channel has no secret (it
+  uses the device modem).
 - **`RegexTesterActivity` is a dry-run mirror of the live pipeline.** It must evaluate the same
   channels `SmsReceiver` does (all three, via each config's `isOperational`); if you add or change
   a channel, update the tester so the two cannot drift.

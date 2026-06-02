@@ -25,6 +25,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.miguelcaldas.mcsmsforwardermultichannel.util.LogUtils
 import com.miguelcaldas.mcsmsforwardermultichannel.util.RegexListStore
+import com.miguelcaldas.mcsmsforwardermultichannel.util.SecureStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderMatcher
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsConfig
@@ -55,6 +56,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var waTemplateLanguageLayout: TextInputLayout
 
     private lateinit var tgEnabled: MaterialSwitch
+    private lateinit var tgBotTokenLayout: TextInputLayout
     private lateinit var tgBotToken: EditText
     private lateinit var tgChatId: EditText
 
@@ -109,6 +111,7 @@ class SettingsActivity : AppCompatActivity() {
         waTemplateLanguageLayout = findViewById(R.id.waTemplateLanguageLayout)
 
         tgEnabled = findViewById(R.id.tgEnabled)
+        tgBotTokenLayout = findViewById(R.id.tgBotTokenLayout)
         tgBotToken = findViewById(R.id.tgBotToken)
         tgChatId = findViewById(R.id.tgChatId)
 
@@ -128,7 +131,10 @@ class SettingsActivity : AppCompatActivity() {
 
         waEnabled.isChecked = prefs.getBoolean(WhatsAppConfig.KEY_ENABLED, true)
         waPhoneNumberId.setText(prefs.getString(WhatsAppConfig.KEY_PHONE_NUMBER_ID, ""))
-        waAccessToken.setText(prefs.getString(WhatsAppConfig.KEY_ACCESS_TOKEN, ""))
+        // Write-only: the stored token is never surfaced. Leave the field blank and show a
+        // "saved" hint; typing replaces it, an empty field keeps the existing token.
+        waAccessToken.setText("")
+        applyTokenHelper(waAccessTokenLayout, SecureStore.has(this, SecureStore.KEY_WA_ACCESS_TOKEN), WA_TOKEN_HELP)
         waRecipient.setText(prefs.getString(WhatsAppConfig.KEY_RECIPIENT, ""))
         waTemplateName.setText(prefs.getString(WhatsAppConfig.KEY_TEMPLATE_NAME, ""))
         waTemplateLanguage.setText(
@@ -161,9 +167,11 @@ class SettingsActivity : AppCompatActivity() {
             mainHandler.postDelayed(persistWaRunnable, PERSIST_DEBOUNCE_MS)
         }
 
-        val tgConfig = TelegramConfig.load(prefs)
+        val tgConfig = TelegramConfig.load(this)
         tgEnabled.isChecked = tgConfig.enabled
-        tgBotToken.setText(tgConfig.botToken)
+        // Write-only: the stored bot token is never surfaced (see WhatsApp note above).
+        tgBotToken.setText("")
+        applyTokenHelper(tgBotTokenLayout, SecureStore.has(this, SecureStore.KEY_TG_BOT_TOKEN), TG_TOKEN_HELP)
         tgChatId.setText(tgConfig.chatId)
         val tgPersistWatcher: (CharSequence?) -> Unit = { _ ->
             mainHandler.removeCallbacks(persistTgRunnable)
@@ -255,7 +263,6 @@ class SettingsActivity : AppCompatActivity() {
         prefs.edit {
             putBoolean(WhatsAppConfig.KEY_ENABLED, waEnabled.isChecked)
             putString(WhatsAppConfig.KEY_PHONE_NUMBER_ID, waPhoneNumberId.text?.toString()?.trim().orEmpty())
-            putString(WhatsAppConfig.KEY_ACCESS_TOKEN, waAccessToken.text?.toString()?.trim().orEmpty())
             putString(WhatsAppConfig.KEY_RECIPIENT, waRecipient.text?.toString()?.trim().orEmpty())
             putBoolean(WhatsAppConfig.KEY_USE_TEMPLATE, waUseTemplate.isChecked)
             putString(WhatsAppConfig.KEY_TEMPLATE_NAME, waTemplateName.text?.toString()?.trim().orEmpty())
@@ -266,13 +273,23 @@ class SettingsActivity : AppCompatActivity() {
                     ?: WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE
             )
         }
+        // Only overwrite the encrypted token when the user actually typed one; an empty
+        // field means "keep the saved token".
+        val typedToken = waAccessToken.text?.toString()?.trim().orEmpty()
+        if (typedToken.isNotEmpty()) {
+            SecureStore.write(this, SecureStore.KEY_WA_ACCESS_TOKEN, typedToken)
+        }
     }
 
     private fun persistTelegramConfig() {
         prefs.edit {
             putBoolean(TelegramConfig.KEY_ENABLED, tgEnabled.isChecked)
-            putString(TelegramConfig.KEY_BOT_TOKEN, tgBotToken.text?.toString()?.trim().orEmpty())
             putString(TelegramConfig.KEY_CHAT_ID, tgChatId.text?.toString()?.trim().orEmpty())
+        }
+        // Only overwrite the encrypted token when the user actually typed one.
+        val typedToken = tgBotToken.text?.toString()?.trim().orEmpty()
+        if (typedToken.isNotEmpty()) {
+            SecureStore.write(this, SecureStore.KEY_TG_BOT_TOKEN, typedToken)
         }
     }
 
@@ -289,6 +306,15 @@ class SettingsActivity : AppCompatActivity() {
         waTemplateLanguageLayout.isEnabled = enabled
         waTemplateName.isEnabled = enabled
         waTemplateLanguage.isEnabled = enabled
+    }
+
+    /**
+     * Reflects the write-only token state in the field's helper text: when a secret is
+     * already saved we show the "saved" note instead of the default guidance, signalling
+     * the user can leave it blank to keep it or type a new value to replace it.
+     */
+    private fun applyTokenHelper(layout: TextInputLayout, defined: Boolean, defaultHelp: String) {
+        layout.helperText = if (defined) TOKEN_SAVED_HELP else defaultHelp
     }
 
     private fun validateRecipient(text: String) {
@@ -325,7 +351,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun sendWhatsAppTestMessage() {
-        val config = WhatsAppConfig.load(prefs)
+        val config = WhatsAppConfig.load(this)
         if (!config.hasCredentials) {
             Snackbar.make(
                 rootContainer,
@@ -352,7 +378,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun sendTelegramTestMessage() {
-        val config = TelegramConfig.load(prefs)
+        val config = TelegramConfig.load(this)
         if (!config.hasCredentials) {
             Snackbar.make(
                 rootContainer,
@@ -497,5 +523,13 @@ class SettingsActivity : AppCompatActivity() {
     companion object {
         // 150ms swallows the bursts during typing while still feeling instant on save.
         private const val PERSIST_DEBOUNCE_MS = 150L
+
+        // Default helper texts for the write-only token fields (mirrors the layout XML),
+        // restored when no secret is saved yet.
+        private const val WA_TOKEN_HELP =
+            "System-user token recommended for production. Temporary tokens expire in 24h."
+        private const val TG_TOKEN_HELP = "From @BotFather, e.g. 123456:ABCDEF..."
+        private const val TOKEN_SAVED_HELP =
+            "Saved (hidden). Leave blank to keep it, or type a new value to replace it."
     }
 }

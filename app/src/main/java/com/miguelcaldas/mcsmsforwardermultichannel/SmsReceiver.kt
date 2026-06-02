@@ -30,8 +30,8 @@ class SmsReceiver : BroadcastReceiver() {
         // installs are unaffected.
         if (!prefs.getBoolean("master_enabled", true)) return
 
-        val waConfig = WhatsAppConfig.load(prefs)
-        val tgConfig = TelegramConfig.load(prefs)
+        val waConfig = WhatsAppConfig.load(context)
+        val tgConfig = TelegramConfig.load(context)
         val smsConfig = SmsConfig.load(prefs)
         // Bail before any other work if no outbound channel is enabled+configured.
         if (!waConfig.isOperational && !tgConfig.isOperational && !smsConfig.isOperational) return

@@ -8,7 +8,7 @@ Listens for incoming SMS on an Android device, runs them through a sender/regex 
 
 Each channel is independently toggleable; enable one, two, or all three at once.
 
-> **Test variant.** All credentials (WhatsApp access token, Telegram bot token) are stored as plain text in the app's private `SharedPreferences`. The SMS channel needs no token — it uses the device modem. Only install on a device you fully control, and use the narrowest credentials you can.
+> **Test variant.** The WhatsApp access token and Telegram bot token are stored **encrypted at rest** (Android Keystore-backed `EncryptedSharedPreferences`, separate from the app's plaintext `SharedPreferences`) and are **write-only** in the UI — once saved they are never re-displayed. The SMS channel needs no token — it uses the device modem. Even so, only install on a device you fully control, and use the narrowest credentials you can.
 
 ## What it does
 
@@ -116,7 +116,7 @@ Settings screen:
 
 - **Forward to WhatsApp** — master toggle for the channel.
 - **Phone Number ID** — numeric, from Meta.
-- **Access token** — Bearer token; stored as plain text on device (see warning above).
+- **Access token** — Bearer token; stored encrypted at rest and write-only in the UI (see warning above).
 - **Recipient** — destination WhatsApp number in E.164 form (`+35191XXXXXXX`).
 - **Send as approved template** — on by default. When on, fill **Template name** and **Template language** (e.g. `en_US`). When off, messages are sent as free-form `text` (only works inside the 24-hour customer service window).
 - **Send WhatsApp test message** button — POSTs a synthetic message to your recipient using your current WhatsApp settings.
@@ -124,7 +124,7 @@ Settings screen:
 **Telegram Bot API**
 
 - **Forward to Telegram** — master toggle for the channel (off by default).
-- **Bot token** — from @BotFather; stored as plain text.
+- **Bot token** — from @BotFather; stored encrypted at rest and write-only in the UI.
 - **Chat ID** — numeric (positive for DMs, negative for groups).
 - **Send Telegram test message** button — POSTs a synthetic message to the chat ID using your current Telegram settings.
 
@@ -143,6 +143,8 @@ Single-module Android app (`:app`), Kotlin, no Compose — XML layouts with Mate
 **Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`mc_sms_fwd_wa`/`master_enabled`, default ON) → bail if no channel is operational (enabled toggle on AND credentials present) → reassemble multipart → SMS loop guard (suppress messages from the SMS forward destination) → match sender via `SenderMatcher` → normalize body via `TextNormalizer.normalizeForMatching` → compile each regex once and match any → apply optional `ForwardTemplate` → `BroadcastReceiver.goAsync()` → fan out the same body to **every operational channel** in parallel. A shared `AtomicInteger` counts pending channel callbacks; once they all complete, the receiver records exactly one stat (if any channel succeeded) and calls `pending.finish()`.
 
 `WhatsAppCloudChannel`, `TelegramChannel`, and `SmsChannel` are sibling singletons. The two HTTP channels use `HttpURLConnection` on their own single-thread daemon executor (`wa-sender`, `tg-sender`), 10 s connect / 20 s read, and report `SEND OK`/`SEND FAILED` with the HTTP status and provider-specific error summary (Meta `error.{code,type,message}` for WhatsApp, Telegram `error_code` + `description` for Telegram). Neither ever logs its bearer/bot token. `SmsChannel` dispatches through `SmsManager.sendMultipartTextMessage` and registers a private result receiver that logs the modem's per-segment outcome. Stats are owned solely by `SmsReceiver` — the channels only log.
+
+Secrets (the WhatsApp access token and Telegram bot token) live in a separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via the `SecureStore` singleton, which also migrates any legacy plaintext token out of the unencrypted prefs on first read. `WhatsAppConfig.load` / `TelegramConfig.load` take a `Context` so they can read those tokens; everything else (toggles, phone numbers, chat IDs, lists, logs, stats) stays in the plaintext `mc_sms_fwd_wa` prefs.
 
 ## License
 

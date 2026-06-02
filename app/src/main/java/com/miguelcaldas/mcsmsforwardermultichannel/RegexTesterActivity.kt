@@ -91,8 +91,8 @@ class RegexTesterActivity : AppCompatActivity() {
         // Mirror the live pipeline: a channel only fires when it is *operational*
         // (its toggle is on AND its credentials are complete). Evaluate all three so
         // the dry-run never disagrees with SmsReceiver.
-        val waConfig = WhatsAppConfig.load(prefs)
-        val tgConfig = TelegramConfig.load(prefs)
+        val waConfig = WhatsAppConfig.load(this)
+        val tgConfig = TelegramConfig.load(this)
         val smsConfig = SmsConfig.load(prefs)
         val operationalChannels = buildList {
             if (waConfig.isOperational) add("WhatsApp ${waConfig.recipient}")
