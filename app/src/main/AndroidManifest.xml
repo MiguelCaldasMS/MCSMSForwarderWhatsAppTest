@@ -50,7 +50,11 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name=".SmsReceiver" android:enabled="true" android:exported="false">
+        <!-- exported=true is required: SMS_RECEIVED is broadcast by the telephony/phone
+             process (a different UID), so an unexported receiver would never be invoked.
+             SMS_RECEIVED is a protected broadcast that only the system can send, so this
+             cannot be spoofed by other apps. -->
+        <receiver android:name=".SmsReceiver" android:enabled="true" android:exported="true">
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
