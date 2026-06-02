@@ -202,26 +202,26 @@ class MainActivity : AppCompatActivity() {
         )
         if (waConfig.enabled) {
             addReadinessRow(
-                "WhatsApp Phone Number ID set",
+                "WhatsApp Phone Number ID",
                 waConfig.phoneNumberId.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
             )
             addReadinessRow(
-                "WhatsApp access token set",
+                "WhatsApp access token",
                 waConfig.accessToken.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
             )
             addReadinessRow(
-                "WhatsApp recipient set (E.164)",
+                "WhatsApp recipient (E.164)",
                 waConfig.recipient.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
             )
             if (waConfig.useTemplate) {
                 addReadinessRow(
-                    "WhatsApp template configured",
+                    "WhatsApp template",
                     waConfig.templateName.isNotBlank() && waConfig.templateLanguage.isNotBlank(),
                     fixLabel = "Open",
                     onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
@@ -230,13 +230,13 @@ class MainActivity : AppCompatActivity() {
         }
         if (tgConfig.enabled) {
             addReadinessRow(
-                "Telegram bot token set",
+                "Telegram bot token",
                 tgConfig.botToken.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
             )
             addReadinessRow(
-                "Telegram chat ID set",
+                "Telegram chat ID",
                 tgConfig.chatId.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
@@ -251,7 +251,7 @@ class MainActivity : AppCompatActivity() {
                 onFix = { requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS) }
             )
             addReadinessRow(
-                "SMS destination set (E.164)",
+                "SMS destination (E.164)",
                 smsConfig.destination.isNotEmpty(),
                 fixLabel = "Open",
                 onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
