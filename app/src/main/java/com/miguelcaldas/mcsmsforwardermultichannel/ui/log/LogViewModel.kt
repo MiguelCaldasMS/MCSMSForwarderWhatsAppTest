@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class LogFilter { All, SendOk, SendFailed, FakeSend, Boot }
+enum class LogFilter { All, SendOk, SendFailed, Boot }
 
 /**
  * Holds the activity-log screen state. Reads entries through [LogUtils] (backed by
@@ -61,9 +61,8 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun matchesFilter(entry: String, filter: LogFilter): Boolean = when (filter) {
         LogFilter.All -> true
-        LogFilter.SendOk -> entry.contains("SEND OK") || entry.contains("REAL SEND \u2192")
+        LogFilter.SendOk -> entry.contains("SEND OK") || entry.contains("REAL SEND")
         LogFilter.SendFailed -> entry.contains("FAILED")
-        LogFilter.FakeSend -> entry.contains("FAKE SEND")
         LogFilter.Boot -> entry.contains("BOOT \u2192") || entry.contains("TILE \u2192")
     }
 

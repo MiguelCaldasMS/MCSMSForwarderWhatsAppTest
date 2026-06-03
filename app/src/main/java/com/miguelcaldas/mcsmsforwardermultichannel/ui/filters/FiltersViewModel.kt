@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class FiltersViewModel(application: Application) : AndroidViewModel(application) {
 
-    enum class Tone { NEUTRAL, POSITIVE, ERROR }
+    enum class Tone { NEUTRAL, POSITIVE }
 
     data class TestOutcome(val text: String, val tone: Tone)
 

@@ -45,8 +45,6 @@ import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogFailureDark
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogFailureLight
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogSuccessDark
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogSuccessLight
-import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogTestDark
-import com.miguelcaldas.mcsmsforwardermultichannel.ui.theme.LogTestLight
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -82,7 +80,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 FilterChip(selected = filter == LogFilter.All, onClick = { viewModel.setFilter(LogFilter.All) }, label = { Text("All") })
                 FilterChip(selected = filter == LogFilter.SendOk, onClick = { viewModel.setFilter(LogFilter.SendOk) }, label = { Text("Send OK") })
                 FilterChip(selected = filter == LogFilter.SendFailed, onClick = { viewModel.setFilter(LogFilter.SendFailed) }, label = { Text("Failed") })
-                FilterChip(selected = filter == LogFilter.FakeSend, onClick = { viewModel.setFilter(LogFilter.FakeSend) }, label = { Text("Tests") })
                 FilterChip(selected = filter == LogFilter.Boot, onClick = { viewModel.setFilter(LogFilter.Boot) }, label = { Text("Boot/Tile") })
             }
 
@@ -128,17 +125,15 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
 }
 
 // Color each entry by category. Order matters: FAILED is checked before generic
-// success so "SEND FAILED" is red, not green. Mirrors the old SpannableStringBuilder.
+// success so "SEND FAILED" is red, not green.
 private fun buildLogText(logs: List<String>, dark: Boolean): AnnotatedString {
     val success: Color = if (dark) LogSuccessDark else LogSuccessLight
     val failure: Color = if (dark) LogFailureDark else LogFailureLight
-    val test: Color = if (dark) LogTestDark else LogTestLight
     return buildAnnotatedString {
         logs.forEach { entry ->
             val color = when {
                 entry.contains("FAILED") -> failure
                 entry.contains("REAL SEND") || entry.contains("SEND OK") -> success
-                entry.contains("FAKE SEND") -> test
                 else -> Color.Unspecified
             }
             if (color == Color.Unspecified) {

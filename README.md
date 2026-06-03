@@ -14,17 +14,17 @@ Each channel is independently toggleable; enable one, two, or all three at once.
 
 | Status / readiness | Channels | Activity log |
 | --- | --- | --- |
-| ![Status tab: a forwarding master switch, a "Needs attention" checklist with red warning icons and fix actions](docs/screenshots/status.png) | ![Channels tab: WhatsApp, Telegram, and SMS cards each with their own icon, a status line, and an enable switch](docs/screenshots/channels.png) | ![Activity tab: colour-coded REAL SEND / SEND OK entries with filter chips and Share / Clear actions](docs/screenshots/activity-log.png) |
+| ![Status tab: a forwarding master switch, an "All systems go" readiness card, and a lifetime forwarding-stats card](docs/screenshots/status.png) | ![Channels tab: WhatsApp, Telegram, and SMS cards each with their own icon, a status line, and an enable switch](docs/screenshots/channels.png) | ![Activity tab: colour-coded REAL SEND / SEND OK entries with filter chips and Share / Clear actions](docs/screenshots/activity-log.png) |
 
 The UI is a single-activity Jetpack Compose app with a Material 3 bottom-navigation bar:
 
 - **Status** — a master forwarding switch plus a **readiness checklist** that surfaces only the blocking setup items (permissions, battery exemption, missing credentials) as actionable fix chips, and a lifetime forwarding-stats card.
 - **Channels** — WhatsApp, Telegram, and SMS as cards (status + enable switch); tap one to open its detail form, or open **Senders, rules & template** for the shared filters.
-- **Activity** — the colour-coded log (green successes, red failures, blue dry-run tests) with filter chips.
+- **Activity** — the colour-coded log (green successes, red failures) with filter chips.
 
 | Channel detail (WhatsApp) | Filters |
 | --- | --- |
-| ![WhatsApp detail form: enable switch, WhatsApp Phone Number ID, write-only Access token, recipient with a country-code hint, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders as removable chips, regex rules as editable rows, and a forwarding template](docs/screenshots/filters.png) |
+| ![WhatsApp detail form: enable switch, WhatsApp Phone Number ID, write-only Access token, recipient with a country-code hint, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders and regex rules as removable chips, a forwarding template, and an inline test card](docs/screenshots/filters.png) |
 
 ## What it does
 
@@ -129,7 +129,7 @@ Filters are shared by every channel and live on the **Channels** tab under **Sen
 **Filtering (shared by all channels)**
 
 - **Allowed senders** — removable chips; phone numbers or alphanumeric IDs. Type one and tap **Add**.
-- **Message format rules** — editable regex rows; a message is forwarded if **any** pattern matches. With no rules, nothing is forwarded.
+- **Message format rules** — removable chips; regex patterns, a message is forwarded if **any** pattern matches. Type one and tap **Add**. With no rules, nothing is forwarded.
 - **Forwarding template** (optional) — `%s`, `%t`, `%m` tokens.
 - **Test a message** — an inline card that dry-runs a sample sender + message against the filters as currently shown on screen (no need to save first); the message starts blank and the sender defaults to the first phone in the list, both remembered from the last test. Nothing is sent.
 

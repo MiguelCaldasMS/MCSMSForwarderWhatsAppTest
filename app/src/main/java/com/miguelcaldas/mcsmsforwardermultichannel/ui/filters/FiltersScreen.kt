@@ -340,7 +340,6 @@ private fun TestCard(
 private fun toneColor(tone: FiltersViewModel.Tone): Color {
     return when (tone) {
         FiltersViewModel.Tone.POSITIVE -> MaterialTheme.colorScheme.primary
-        FiltersViewModel.Tone.ERROR -> MaterialTheme.colorScheme.error
         FiltersViewModel.Tone.NEUTRAL -> MaterialTheme.colorScheme.onSurface
     }
 }
