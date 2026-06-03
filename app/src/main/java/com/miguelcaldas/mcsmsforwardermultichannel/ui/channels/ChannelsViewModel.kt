@@ -114,7 +114,7 @@ class ChannelsViewModel(application: Application) : AndroidViewModel(application
         refresh()
     }
 
-    fun saveWhatsApp(enabled: Boolean, phoneNumberId: String, recipient: String, useTemplate: Boolean, templateName: String, templateLanguage: String, typedToken: String) {
+    fun saveWhatsApp(enabled: Boolean, phoneNumberId: String, recipient: String, useTemplate: Boolean, templateName: String, templateLanguage: String, newToken: String?) {
         prefs.edit {
             putBoolean(WhatsAppConfig.KEY_ENABLED, enabled)
             putString(WhatsAppConfig.KEY_PHONE_NUMBER_ID, phoneNumberId.trim())
@@ -123,21 +123,22 @@ class ChannelsViewModel(application: Application) : AndroidViewModel(application
             putString(WhatsAppConfig.KEY_TEMPLATE_NAME, templateName.trim())
             putString(WhatsAppConfig.KEY_TEMPLATE_LANGUAGE, templateLanguage.trim().ifBlank { WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE })
         }
-        // Only overwrite the encrypted token when the user actually typed one; an empty
-        // field means "keep the saved token".
-        if (typedToken.trim().isNotEmpty()) {
-            SecureStore.write(getApplication(), SecureStore.KEY_WA_ACCESS_TOKEN, typedToken.trim())
+        // null means "the mask was left untouched" -> keep the stored token. A non-null
+        // value writes it; SecureStore.write removes the secret when the value is blank,
+        // so an emptied field clears the token.
+        if (newToken != null) {
+            SecureStore.write(getApplication(), SecureStore.KEY_WA_ACCESS_TOKEN, newToken.trim())
         }
         refresh()
     }
 
-    fun saveTelegram(enabled: Boolean, chatId: String, typedToken: String) {
+    fun saveTelegram(enabled: Boolean, chatId: String, newToken: String?) {
         prefs.edit {
             putBoolean(TelegramConfig.KEY_ENABLED, enabled)
             putString(TelegramConfig.KEY_CHAT_ID, chatId.trim())
         }
-        if (typedToken.trim().isNotEmpty()) {
-            SecureStore.write(getApplication(), SecureStore.KEY_TG_BOT_TOKEN, typedToken.trim())
+        if (newToken != null) {
+            SecureStore.write(getApplication(), SecureStore.KEY_TG_BOT_TOKEN, newToken.trim())
         }
         refresh()
     }

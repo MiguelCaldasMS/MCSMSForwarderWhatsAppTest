@@ -115,7 +115,10 @@ private fun EnabledRow(enabled: Boolean, onToggle: (Boolean) -> Unit) {
 private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toast: (String) -> Unit) {
     val context = LocalContext.current
     val initial = remember { WhatsAppConfig.load(context) }
-    val tokenAlreadySaved = remember { SecureStore.has(context, SecureStore.KEY_WA_ACCESS_TOKEN) }
+    // The field is pre-filled with a bullet mask the same length as the stored token.
+    // Leaving the mask untouched keeps the saved token; clearing it deletes the token;
+    // typing over it replaces the token. The real secret never enters Compose state.
+    val tokenMask = remember { "\u2022".repeat(SecureStore.read(context, SecureStore.KEY_WA_ACCESS_TOKEN).length) }
 
     var enabled by rememberSaveable { mutableStateOf(initial.enabled) }
     var phoneNumberId by rememberSaveable { mutableStateOf(initial.phoneNumberId) }
@@ -123,7 +126,7 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
     var useTemplate by rememberSaveable { mutableStateOf(initial.useTemplate) }
     var templateName by rememberSaveable { mutableStateOf(initial.templateName) }
     var templateLanguage by rememberSaveable { mutableStateOf(initial.templateLanguage) }
-    var token by rememberSaveable { mutableStateOf("") }
+    var token by rememberSaveable { mutableStateOf(tokenMask) }
 
     val recipientError = recipient.isNotEmpty() && !PhoneNumberUtils.isWellFormedSmsAddress(recipient)
 
@@ -134,7 +137,7 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
     OutlinedTextField(
         value = phoneNumberId,
         onValueChange = { phoneNumberId = it },
-        label = { Text("Phone Number ID") },
+        label = { Text("WhatsApp Phone Number ID") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -145,23 +148,18 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        supportingText = {
-            Text(
-                if (tokenAlreadySaved) "Saved (hidden). Leave blank to keep it, or type a new value to replace it." else "System-user token recommended for production. Temporary tokens expire in 24h.",
-            )
-        },
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
         value = recipient,
         onValueChange = { recipient = it },
-        label = { Text("Recipient (E.164)") },
+        label = { Text("WhatsApp Recipient Phone Number") },
         singleLine = true,
         isError = recipientError,
         supportingText = if (recipientError) {
-            { Text("Doesn't look like an E.164 number") }
+            { Text("Doesn't look like a valid phone number") }
         } else {
-            null
+            { Text("Enter the full number with country code and no +, e.g. 351912345678.") }
         },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         modifier = Modifier.fillMaxWidth(),
@@ -198,12 +196,11 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
 
     FormActions(
         onTest = {
-            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, token)
-            token = ""
+            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, if (token != tokenMask) token else null)
             toast(viewModel.sendWhatsAppTest())
         },
         onSave = {
-            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, token)
+            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, if (token != tokenMask) token else null)
             onSaved()
         },
     )
@@ -213,11 +210,11 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
 private fun TelegramForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toast: (String) -> Unit) {
     val context = LocalContext.current
     val initial = remember { TelegramConfig.load(context) }
-    val tokenAlreadySaved = remember { SecureStore.has(context, SecureStore.KEY_TG_BOT_TOKEN) }
+    val tokenMask = remember { "\u2022".repeat(SecureStore.read(context, SecureStore.KEY_TG_BOT_TOKEN).length) }
 
     var enabled by rememberSaveable { mutableStateOf(initial.enabled) }
     var chatId by rememberSaveable { mutableStateOf(initial.chatId) }
-    var token by rememberSaveable { mutableStateOf("") }
+    var token by rememberSaveable { mutableStateOf(tokenMask) }
 
     EnabledRow(enabled) { checked ->
         enabled = checked
@@ -231,9 +228,7 @@ private fun TelegramForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         supportingText = {
-            Text(
-                if (tokenAlreadySaved) "Saved (hidden). Leave blank to keep it, or type a new value to replace it." else "From @BotFather, e.g. 123456:ABCDEF...",
-            )
+            Text("From @BotFather, e.g. 123456:ABCDEF\u2026")
         },
         modifier = Modifier.fillMaxWidth(),
     )
@@ -247,12 +242,11 @@ private fun TelegramForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
 
     FormActions(
         onTest = {
-            viewModel.saveTelegram(enabled, chatId, token)
-            token = ""
+            viewModel.saveTelegram(enabled, chatId, if (token != tokenMask) token else null)
             toast(viewModel.sendTelegramTest())
         },
         onSave = {
-            viewModel.saveTelegram(enabled, chatId, token)
+            viewModel.saveTelegram(enabled, chatId, if (token != tokenMask) token else null)
             onSaved()
         },
     )
