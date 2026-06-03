@@ -51,10 +51,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var readinessContainer: LinearLayout
 
     // Refresh the stat views live when a forward is recorded while this screen is visible.
-    private val statsChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == null || key in STAT_KEYS) refreshStats()
+    private val statsChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == null || key in STAT_KEYS) {
+            refreshStats()
         }
+    }
 
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.RECEIVE_SMS,
@@ -62,24 +63,25 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.POST_NOTIFICATIONS,
     )
 
-    private val requestMultiplePermissionsLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsMap ->
-            refreshReadiness()
-            val denied = permissionsMap.filterValues { !it }.keys
-            if (denied.isEmpty()) return@registerForActivityResult
-
-            val permanentlyDenied = denied.any { !shouldShowRequestPermissionRationale(it) }
-            if (permanentlyDenied) {
-                Snackbar.make(
-                    rootContainer,
-                    "Some permissions were permanently denied. Enable them in app settings.",
-                    Snackbar.LENGTH_LONG
-                ).setAction("Settings") { openAppSettings() }.show()
-            } else {
-                val names = denied.joinToString { it.substringAfterLast(".") }
-                Snackbar.make(rootContainer, "Needed permissions: $names", Snackbar.LENGTH_LONG).show()
-            }
+    private val requestMultiplePermissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsMap ->
+        refreshReadiness()
+        val denied = permissionsMap.filterValues { !it }.keys
+        if (denied.isEmpty()) {
+            return@registerForActivityResult
         }
+
+        val permanentlyDenied = denied.any { !shouldShowRequestPermissionRationale(it) }
+        if (permanentlyDenied) {
+            Snackbar.make(rootContainer, "Some permissions were permanently denied. Enable them in app settings.", Snackbar.LENGTH_LONG)
+                .setAction("Settings") {
+                    openAppSettings()
+                }
+                .show()
+        } else {
+            val names = denied.joinToString { it.substringAfterLast(".") }
+            Snackbar.make(rootContainer, "Needed permissions: $names", Snackbar.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -91,9 +93,7 @@ class MainActivity : AppCompatActivity() {
 
         val contentScroll = findViewById<View>(R.id.contentScroll)
         ViewCompat.setOnApplyWindowInsetsListener(contentScroll) { v, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
-            )
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
             insets
         }
@@ -110,7 +110,9 @@ class MainActivity : AppCompatActivity() {
         masterSwitch.isChecked = prefs.getBoolean("master_enabled", true)
         updateMasterSubtitle(masterSwitch.isChecked)
         masterSwitch.setOnCheckedChangeListener { _, checked ->
-            prefs.edit { putBoolean("master_enabled", checked) }
+            prefs.edit {
+                putBoolean("master_enabled", checked)
+            }
             updateMasterSubtitle(checked)
         }
 
@@ -143,10 +145,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateMasterSubtitle(enabled: Boolean) {
-        masterSwitchSubtitle.text = if (enabled)
-            "Matching messages from allowed senders are forwarded to the enabled channels."
-        else
-            "Paused. Incoming SMS will be ignored."
+        masterSwitchSubtitle.text = if (enabled) "Matching messages from allowed senders are forwarded to the enabled channels." else "Paused. Incoming SMS will be ignored."
     }
 
     private fun confirmResetStats() {
@@ -172,9 +171,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun formatAbsoluteAndRelative(fmt: DateFormat, millis: Long, now: Long): String {
         val absolute = fmt.format(Date(millis))
-        val relative = DateUtils.getRelativeTimeSpanString(
-            millis, now, DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE
-        )
+        val relative = DateUtils.getRelativeTimeSpanString(millis, now, DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE)
         return "$absolute  ·  $relative"
     }
 
@@ -184,23 +181,27 @@ class MainActivity : AppCompatActivity() {
 
         addReadinessRow(
             "Receive SMS permission",
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) ==
-                PackageManager.PERMISSION_GRANTED,
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED,
             fixLabel = "Grant",
-            onFix = { requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS) }
+            onFix = {
+                requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS)
+            }
         )
         addReadinessRow(
             "Notifications permission",
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
-                PackageManager.PERMISSION_GRANTED,
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
             fixLabel = "Grant",
-            onFix = { requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS) }
+            onFix = {
+                requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS)
+            }
         )
         addReadinessRow(
             "Battery optimization exempt",
             powerManager?.isIgnoringBatteryOptimizations(packageName) == true,
             fixLabel = "Settings",
-            onFix = { requestIgnoreBatteryOptimizations() }
+            onFix = {
+                requestIgnoreBatteryOptimizations()
+            }
         )
 
         val waConfig = WhatsAppConfig.load(this)
@@ -210,33 +211,43 @@ class MainActivity : AppCompatActivity() {
             "At least one channel enabled",
             waConfig.enabled || tgConfig.enabled || smsConfig.enabled,
             fixLabel = "Open",
-            onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+            onFix = {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
         )
         if (waConfig.enabled) {
             addReadinessRow(
                 "WhatsApp Phone Number ID",
                 waConfig.phoneNumberId.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
             addReadinessRow(
                 "WhatsApp access token",
                 waConfig.accessToken.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
             addReadinessRow(
                 "WhatsApp recipient (E.164)",
                 waConfig.recipient.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
             if (waConfig.useTemplate) {
                 addReadinessRow(
                     "WhatsApp template",
                     waConfig.templateName.isNotBlank() && waConfig.templateLanguage.isNotBlank(),
                     fixLabel = "Open",
-                    onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                    onFix = {
+                        startActivity(Intent(this, SettingsActivity::class.java))
+                    }
                 )
             }
         }
@@ -245,61 +256,60 @@ class MainActivity : AppCompatActivity() {
                 "Telegram bot token",
                 tgConfig.botToken.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
             addReadinessRow(
                 "Telegram chat ID",
                 tgConfig.chatId.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
         }
         if (smsConfig.enabled) {
             addReadinessRow(
                 "Send SMS permission",
-                ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) ==
-                    PackageManager.PERMISSION_GRANTED,
+                ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED,
                 fixLabel = "Grant",
-                onFix = { requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS) }
+                onFix = {
+                    requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS)
+                }
             )
             addReadinessRow(
                 "SMS destination (E.164)",
                 smsConfig.destination.isNotEmpty(),
                 fixLabel = "Open",
-                onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                onFix = {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                }
             )
         }
         addReadinessRow(
             "At least one allowed sender",
             SenderListStore.load(prefs).any { it.isNotBlank() },
             fixLabel = "Open",
-            onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+            onFix = {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
         )
         addReadinessRow(
             "At least one regex",
             RegexListStore.load(prefs).isNotEmpty(),
             fixLabel = "Open",
-            onFix = { startActivity(Intent(this, SettingsActivity::class.java)) }
+            onFix = {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
         )
     }
 
-    private fun addReadinessRow(
-        label: String,
-        ok: Boolean,
-        fixLabel: String,
-        onFix: () -> Unit,
-    ) {
-        val row = LayoutInflater.from(this)
-            .inflate(R.layout.item_readiness, readinessContainer, false) as ViewGroup
+    private fun addReadinessRow(label: String, ok: Boolean, fixLabel: String, onFix: () -> Unit) {
+        val row = LayoutInflater.from(this).inflate(R.layout.item_readiness, readinessContainer, false) as ViewGroup
         val icon = row.findViewById<ImageView>(R.id.readinessIcon)
         icon.setImageResource(if (ok) R.drawable.ic_check_24 else R.drawable.ic_warning_24)
-        icon.setColorFilter(
-            MaterialColors.getColor(
-                icon,
-                if (ok) androidx.appcompat.R.attr.colorPrimary
-                else androidx.appcompat.R.attr.colorError
-            )
-        )
+        icon.setColorFilter(MaterialColors.getColor(icon, if (ok) androidx.appcompat.R.attr.colorPrimary else androidx.appcompat.R.attr.colorError))
         row.findViewById<TextView>(R.id.readinessLabel).text = label
         val fix = row.findViewById<MaterialButton>(R.id.readinessFix)
         if (ok) {
@@ -307,15 +317,15 @@ class MainActivity : AppCompatActivity() {
         } else {
             fix.visibility = View.VISIBLE
             fix.text = fixLabel
-            fix.setOnClickListener { onFix() }
+            fix.setOnClickListener {
+                onFix()
+            }
         }
         readinessContainer.addView(row)
     }
 
     private fun checkAndRequestPermissions() {
-        val toRequest = REQUIRED_PERMISSIONS.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
+        val toRequest = REQUIRED_PERMISSIONS.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (toRequest.isNotEmpty()) {
             requestMultiplePermissionsLauncher.launch(REQUIRED_PERMISSIONS)
         }
@@ -324,36 +334,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkAndRequestBatteryOptimizationExemption() {
         val powerManager = getSystemService(PowerManager::class.java)
-        if (powerManager.isIgnoringBatteryOptimizations(packageName)) return
+        if (powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            return
+        }
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Battery optimization")
-            .setMessage(
-                "Exempt this app from battery optimization for reliable forwarding? " +
-                    "This may increase battery usage."
-            )
-            .setPositiveButton("Settings") { _, _ -> requestIgnoreBatteryOptimizations() }
+            .setMessage("Exempt this app from battery optimization for reliable forwarding? This may increase battery usage.")
+            .setPositiveButton("Settings") { _, _ ->
+                requestIgnoreBatteryOptimizations()
+            }
             .setNegativeButton("Not now", null)
             .show()
     }
 
     private fun requestIgnoreBatteryOptimizations() {
-        val intent = Intent(
-            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-            "package:$packageName".toUri()
-        )
+        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, "package:$packageName".toUri())
         if (packageManager.resolveActivity(intent, PackageManager.ResolveInfoFlags.of(0)) != null) {
             startActivity(intent)
         }
     }
 
     private fun openAppSettings() {
-        startActivity(
-            Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                "package:$packageName".toUri()
-            )
-        )
+        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
     }
 
     private companion object {
