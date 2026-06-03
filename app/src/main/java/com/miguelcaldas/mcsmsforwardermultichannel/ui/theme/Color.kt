@@ -26,7 +26,7 @@ internal val BrandSecondaryContainerDark = Color(0xFF324B4D)
 internal val BrandOnSecondaryContainerDark = Color(0xFFCCE8EA)
 
 // Semantic colors for the activity-log entry coloring, theme-aware so they stay
-// legible in both light and dark. (Replaces the hardcoded hex spans from the View UI.)
+// legible in both light and dark.
 internal val LogSuccessLight = Color(0xFF2E7D32)
 internal val LogSuccessDark = Color(0xFF81C784)
 internal val LogFailureLight = Color(0xFFC62828)

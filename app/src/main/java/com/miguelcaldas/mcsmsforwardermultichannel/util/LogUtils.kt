@@ -6,7 +6,6 @@ import androidx.core.content.edit
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 object LogUtils {
@@ -18,14 +17,10 @@ object LogUtils {
     private const val MAX_ENTRIES = 2000
 
     // Single-thread executor: addToLog reads + serializes the whole log file, so
-    // concurrent writers from SmsReceiver, WhatsAppCloudChannel, BootReceiver, and
-    // RegexTesterActivity would race. Serializing them off the main thread keeps
-    // broadcast onReceive callbacks snappy and avoids interleaved prune/write.
-    private val writeExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "mc-log-writer").apply {
-            isDaemon = true
-        }
-    }
+    // concurrent writers from SmsReceiver, the channels, and BootReceiver would
+    // race. Serializing them off the main thread keeps broadcast onReceive callbacks
+    // snappy and avoids interleaved prune/write.
+    private val writeExecutor = singleThreadDaemonExecutor("mc-log-writer")
 
     private data class Entry(val timestamp: Long, val message: String)
 

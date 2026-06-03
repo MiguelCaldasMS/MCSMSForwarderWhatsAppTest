@@ -22,9 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /** The three outbound channels, used as nav arguments and to pick the right detail form. */
 enum class ChannelType(val title: String, val iconRes: Int) {
-    WhatsApp("WhatsApp", R.drawable.ic_forward_24),
-    Telegram("Telegram", R.drawable.ic_forward_24),
-    Sms("SMS", R.drawable.ic_forward_24),
+    WhatsApp("WhatsApp", R.drawable.ic_chat_24),
+    Telegram("Telegram", R.drawable.ic_send_24),
+    Sms("SMS", R.drawable.ic_sms_24),
 }
 
 /** Visual tone for a channel's one-line status. */

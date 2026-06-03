@@ -2,10 +2,7 @@ package com.miguelcaldas.mcsmsforwardermultichannel.util
 
 import android.content.Context
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
-import java.util.concurrent.Executors
 
 /**
  * Posts forwarded SMS bodies to the Telegram Bot API on a single background
@@ -22,11 +19,7 @@ object TelegramChannel {
     private const val CONNECT_TIMEOUT_MS = 10_000
     private const val READ_TIMEOUT_MS = 20_000
 
-    private val sendExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "tg-sender").apply {
-            isDaemon = true
-        }
-    }
+    private val sendExecutor = singleThreadDaemonExecutor("tg-sender")
 
     fun send(context: Context, config: TelegramConfig, body: String, onComplete: (Boolean) -> Unit = {}) {
         val app = context.applicationContext
@@ -82,35 +75,16 @@ object TelegramChannel {
         // Bot tokens are of the form `{bot_id}:{secret}`; URL-encode just in case the
         // user accidentally pastes a token with stray padding characters.
         val encodedToken = URLEncoder.encode(config.botToken, "UTF-8")
-        val url = URL("$API_BASE/bot$encodedToken/sendMessage")
+        val url = "$API_BASE/bot$encodedToken/sendMessage"
         val payload = JSONObject()
             .put("chat_id", config.chatId)
             .put("text", body)
             .put("disable_web_page_preview", true)
             .toString()
             .toByteArray(Charsets.UTF_8)
-        val conn = (url.openConnection() as HttpURLConnection)
-        try {
-            conn.requestMethod = "POST"
-            conn.connectTimeout = CONNECT_TIMEOUT_MS
-            conn.readTimeout = READ_TIMEOUT_MS
-            conn.doOutput = true
-            conn.useCaches = false
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            conn.setRequestProperty("Accept", "application/json")
-            conn.setFixedLengthStreamingMode(payload.size)
-            conn.outputStream.use { it.write(payload) }
-            val code = conn.responseCode
-            val success = code in 200..299
-            val summary = if (success) null else {
-                val stream = conn.errorStream ?: conn.inputStream
-                val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                summarizeError(raw)
-            }
-            return Outcome(code, success, summary)
-        } finally {
-            conn.disconnect()
-        }
+        val result = HttpJsonClient.postJson(url, payload, CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS)
+        val summary = if (result.success) null else summarizeError(result.errorBody)
+        return Outcome(result.statusCode, result.success, summary)
     }
 
     private fun summarizeError(raw: String): String {

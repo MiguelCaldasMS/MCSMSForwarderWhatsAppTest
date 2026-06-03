@@ -8,7 +8,7 @@ import java.util.Locale
 object SenderMatcher {
 
     // Single source of truth for sender allow-list matching. Used by SmsReceiver
-    // (live pipeline) and RegexTesterActivity (dry-run) so the two cannot drift.
+    // (live pipeline) and RegexTesterViewModel (dry-run) so the two cannot drift.
     fun matches(allowedSenders: List<String>, sender: String, countryIso: String): Boolean =
         allowedSenders.any { entry ->
             entry.equals(sender, ignoreCase = true) || PhoneNumberUtils.areSamePhoneNumber(entry, sender, countryIso)

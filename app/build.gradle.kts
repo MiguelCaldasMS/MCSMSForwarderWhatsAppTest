@@ -75,7 +75,6 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.security.crypto)
 
     // Jetpack Compose

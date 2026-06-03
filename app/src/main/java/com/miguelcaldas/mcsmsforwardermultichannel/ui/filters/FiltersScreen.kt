@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
@@ -166,7 +167,7 @@ private fun SendersCard(senders: List<String>, onAdd: (String) -> Boolean, onRem
                     }
                 }
             }
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = newSender,
                     onValueChange = { newSender = it },
@@ -201,7 +202,7 @@ private fun RulesCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
             rules.forEachIndexed { index, rule ->
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = rule,
                         onValueChange = { value ->

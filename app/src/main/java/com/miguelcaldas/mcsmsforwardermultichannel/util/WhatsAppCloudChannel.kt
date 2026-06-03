@@ -3,9 +3,6 @@ package com.miguelcaldas.mcsmsforwardermultichannel.util
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.concurrent.Executors
 
 /**
  * Posts forwarded SMS bodies to the WhatsApp Cloud API ("Graph") on a single
@@ -21,14 +18,10 @@ object WhatsAppCloudChannel {
     private const val CONNECT_TIMEOUT_MS = 10_000
     private const val READ_TIMEOUT_MS = 20_000
 
-    // Single-thread executor mirrors LogUtils: serialises sends so we never
-    // open two simultaneous HTTPS connections for the same incoming SMS, and
-    // keeps onReceive return time short on the main thread.
-    private val sendExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "wa-sender").apply {
-            isDaemon = true
-        }
-    }
+    // Single-thread executor: serialises sends so we never open two simultaneous
+    // HTTPS connections for the same incoming SMS, and keeps onReceive return time
+    // short on the main thread.
+    private val sendExecutor = singleThreadDaemonExecutor("wa-sender")
 
     fun send(context: Context, config: WhatsAppConfig, body: String, onComplete: (Boolean) -> Unit = {}) {
         val app = context.applicationContext
@@ -75,31 +68,12 @@ object WhatsAppCloudChannel {
         if (secret.isBlank()) text else text.replace(secret, "[redacted]")
 
     private fun postSync(config: WhatsAppConfig, body: String): Outcome {
-        val url = URL("$GRAPH_BASE/${config.phoneNumberId}/messages")
+        val url = "$GRAPH_BASE/${config.phoneNumberId}/messages"
         val payload = buildPayload(config, body).toString().toByteArray(Charsets.UTF_8)
-        val conn = (url.openConnection() as HttpURLConnection)
-        try {
-            conn.requestMethod = "POST"
-            conn.connectTimeout = CONNECT_TIMEOUT_MS
-            conn.readTimeout = READ_TIMEOUT_MS
-            conn.doOutput = true
-            conn.useCaches = false
-            conn.setRequestProperty("Authorization", "Bearer ${config.accessToken}")
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            conn.setRequestProperty("Accept", "application/json")
-            conn.setFixedLengthStreamingMode(payload.size)
-            conn.outputStream.use { it.write(payload) }
-            val code = conn.responseCode
-            val success = code in 200..299
-            val summary = if (success) null else {
-                val stream = conn.errorStream ?: conn.inputStream
-                val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                summarizeError(raw)
-            }
-            return Outcome(code, success, summary)
-        } finally {
-            conn.disconnect()
-        }
+        val headers = mapOf("Authorization" to "Bearer ${config.accessToken}")
+        val result = HttpJsonClient.postJson(url, payload, CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS, headers)
+        val summary = if (result.success) null else summarizeError(result.errorBody)
+        return Outcome(result.statusCode, result.success, summary)
     }
 
     private fun buildPayload(config: WhatsAppConfig, body: String): JSONObject {
