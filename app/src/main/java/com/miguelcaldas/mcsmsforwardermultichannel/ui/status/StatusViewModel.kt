@@ -121,9 +121,6 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
             require(waConfig.phoneNumberId.isNotEmpty(), "Add WhatsApp Phone Number ID", "Open", HealthAction.OPEN_CHANNELS)
             require(waConfig.accessToken.isNotEmpty(), "Add WhatsApp access token", "Open", HealthAction.OPEN_CHANNELS)
             require(waConfig.recipient.isNotEmpty(), "Add WhatsApp recipient", "Open", HealthAction.OPEN_CHANNELS)
-            if (waConfig.useTemplate) {
-                require(waConfig.templateName.isNotBlank() && waConfig.templateLanguage.isNotBlank(), "Set WhatsApp template", "Open", HealthAction.OPEN_CHANNELS)
-            }
         }
         if (tgConfig.enabled) {
             require(tgConfig.botToken.isNotEmpty(), "Add Telegram bot token", "Open", HealthAction.OPEN_CHANNELS)

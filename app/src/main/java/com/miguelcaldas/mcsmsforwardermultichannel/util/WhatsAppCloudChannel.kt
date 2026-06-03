@@ -18,6 +18,17 @@ object WhatsAppCloudChannel {
     private const val CONNECT_TIMEOUT_MS = 10_000
     private const val READ_TIMEOUT_MS = 20_000
 
+    // The message template is fixed in code, not chosen in the UI. Until the app's own
+    // templates are approved by WhatsApp, this points at the prebuilt "hello_world"
+    // template, which has NO variables — so the forwarded SMS body is not sent yet.
+    //
+    // When an approved template with a {{1}} body parameter is ready, change TEMPLATE_NAME
+    // (and language if needed) and flip TEMPLATE_HAS_BODY_PARAM to true so the SMS text is
+    // bound to the template's first body parameter.
+    private const val TEMPLATE_NAME = "hello_world"
+    private const val TEMPLATE_LANGUAGE = "en_US"
+    private const val TEMPLATE_HAS_BODY_PARAM = false
+
     // Single-thread executor: serialises sends so we never open two simultaneous
     // HTTPS connections for the same incoming SMS, and keeps onReceive return time
     // short on the main thread.
@@ -79,45 +90,32 @@ object WhatsAppCloudChannel {
     private fun buildPayload(config: WhatsAppConfig, body: String): JSONObject {
         // Meta accepts E.164 with or without the leading '+'.
         val recipient = config.recipient.trimStart('+')
-        val root = JSONObject()
-            .put("messaging_product", "whatsapp")
-            .put("recipient_type", "individual")
-            .put("to", recipient)
-        return if (config.useTemplate) {
-            root.put("type", "template")
-                .put(
-                    "template",
+        val template = JSONObject()
+            .put("name", TEMPLATE_NAME)
+            .put("language", JSONObject().put("code", TEMPLATE_LANGUAGE))
+        if (TEMPLATE_HAS_BODY_PARAM) {
+            template.put(
+                "components",
+                JSONArray().put(
                     JSONObject()
-                        .put("name", config.templateName)
+                        .put("type", "body")
                         .put(
-                            "language",
-                            JSONObject().put("code", config.templateLanguage)
-                        )
-                        .put(
-                            "components",
+                            "parameters",
                             JSONArray().put(
                                 JSONObject()
-                                    .put("type", "body")
-                                    .put(
-                                        "parameters",
-                                        JSONArray().put(
-                                            JSONObject()
-                                                .put("type", "text")
-                                                .put("text", body)
-                                        )
-                                    )
+                                    .put("type", "text")
+                                    .put("text", body)
                             )
                         )
                 )
-        } else {
-            root.put("type", "text")
-                .put(
-                    "text",
-                    JSONObject()
-                        .put("preview_url", false)
-                        .put("body", body)
-                )
+            )
         }
+        return JSONObject()
+            .put("messaging_product", "whatsapp")
+            .put("recipient_type", "individual")
+            .put("to", recipient)
+            .put("type", "template")
+            .put("template", template)
     }
 
     private fun summarizeError(raw: String): String {

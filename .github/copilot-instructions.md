@@ -40,9 +40,13 @@ cannot re-trigger the pipeline, so the guard is scoped to the SMS channel's dest
 stats** — `SmsReceiver` owns the single increment per matched SMS.
 
 **WhatsApp Cloud channel** (`util/WhatsAppCloudChannel.kt`): `object` with a single-thread daemon
-`Executor` named `wa-sender`. `send` builds JSON via `buildPayload` (free-form `text` when
-`useTemplate=false`, otherwise a template with a single body parameter `{{1}}` bound to `body`),
-strips the leading `+` from the recipient, opens `HttpURLConnection` to
+`Executor` named `wa-sender`. The message template is **fixed in code** (constants `TEMPLATE_NAME`,
+`TEMPLATE_LANGUAGE`, `TEMPLATE_HAS_BODY_PARAM`) — it is intentionally not selectable in the config
+or the UI. It currently points at the prebuilt `hello_world` template, which has no variables, so
+`TEMPLATE_HAS_BODY_PARAM=false` and the forwarded SMS body is **not** sent yet; when an approved
+template with a `{{1}}` body parameter is ready, change the constants to include the body. `send`
+builds the template JSON via `buildPayload`, strips the leading `+` from the recipient, opens
+`HttpURLConnection` to
 `https://graph.facebook.com/v21.0/{phoneNumberId}/messages`, writes the body with
 `setFixedLengthStreamingMode`, sets `Authorization: Bearer …`, 10 s connect / 20 s read timeout,
 then logs `SEND OK [WhatsApp] → {recipient} (HTTP {code})` or the matching `SEND FAILED` with the
@@ -74,8 +78,8 @@ database. Lists (senders, regexes) are newline-delimited strings. Logs use a
 `timestamp\x1Fmessage` format with auto-pruning (35 days / 2000 entries); `LogUtils.addToLog`
 collapses CR/LF/`\x1F` runs in the message to a space so multi-line bodies can't corrupt the
 line-oriented format. WhatsApp credentials live under keys defined in `WhatsAppConfig`:
-`waPhoneNumberId`, `waRecipient`, `waUseTemplate` (default true), `waTemplateName`,
-`waTemplateLanguage` (default `en_US`), `waEnabled` (default true). Telegram: `tgEnabled` (default
+`waPhoneNumberId`, `waRecipient`, `waEnabled` (default true). The template is fixed in code (see
+the WhatsApp channel above), so there are no template prefs. Telegram: `tgEnabled` (default
 false), `tgChatId` (`TelegramConfig`). SMS: `smsEnabled` (default false) and
 `forwardTo` — the destination number (`SmsConfig`). **Secrets (the WhatsApp access token `waAccessToken` and
 the Telegram bot token `tgBotToken`) are NOT in this file** — they live encrypted-at-rest in a

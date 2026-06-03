@@ -123,9 +123,6 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
     var enabled by rememberSaveable { mutableStateOf(initial.enabled) }
     var phoneNumberId by rememberSaveable { mutableStateOf(initial.phoneNumberId) }
     var recipient by rememberSaveable { mutableStateOf(initial.recipient) }
-    var useTemplate by rememberSaveable { mutableStateOf(initial.useTemplate) }
-    var templateName by rememberSaveable { mutableStateOf(initial.templateName) }
-    var templateLanguage by rememberSaveable { mutableStateOf(initial.templateLanguage) }
     var token by rememberSaveable { mutableStateOf(tokenMask) }
 
     val recipientError = recipient.isNotEmpty() && !PhoneNumberUtils.isWellFormedSmsAddress(recipient)
@@ -165,42 +162,13 @@ private fun WhatsAppForm(viewModel: ChannelsViewModel, onSaved: () -> Unit, toas
         modifier = Modifier.fillMaxWidth(),
     )
 
-    ListItem(
-        headlineContent = { Text("Use message template") },
-        supportingContent = { Text("Required to start conversations outside the 24-hour window.") },
-        trailingContent = {
-            Switch(
-                checked = useTemplate,
-                onCheckedChange = { checked ->
-                    useTemplate = checked
-                },
-            )
-        },
-    )
-    if (useTemplate) {
-        OutlinedTextField(
-            value = templateName,
-            onValueChange = { templateName = it },
-            label = { Text("Template name") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = templateLanguage,
-            onValueChange = { templateLanguage = it },
-            label = { Text("Template language") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
     FormActions(
         onTest = {
-            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, if (token != tokenMask) token else null)
+            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, if (token != tokenMask) token else null)
             toast(viewModel.sendWhatsAppTest())
         },
         onSave = {
-            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, useTemplate, templateName, templateLanguage, if (token != tokenMask) token else null)
+            viewModel.saveWhatsApp(enabled, phoneNumberId, recipient, if (token != tokenMask) token else null)
             onSaved()
         },
     )

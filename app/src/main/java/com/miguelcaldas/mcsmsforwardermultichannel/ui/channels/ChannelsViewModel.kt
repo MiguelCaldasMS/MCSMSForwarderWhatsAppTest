@@ -73,7 +73,6 @@ class ChannelsViewModel(application: Application) : AndroidViewModel(application
             config.phoneNumberId.isBlank() -> "Missing Phone Number ID"
             config.accessToken.isBlank() -> "Missing access token"
             config.recipient.isBlank() -> "Missing recipient"
-            config.useTemplate && (config.templateName.isBlank() || config.templateLanguage.isBlank()) -> "Template not set"
             else -> "Setup incomplete"
         } to ChannelTone.INCOMPLETE
     }
@@ -114,14 +113,11 @@ class ChannelsViewModel(application: Application) : AndroidViewModel(application
         refresh()
     }
 
-    fun saveWhatsApp(enabled: Boolean, phoneNumberId: String, recipient: String, useTemplate: Boolean, templateName: String, templateLanguage: String, newToken: String?) {
+    fun saveWhatsApp(enabled: Boolean, phoneNumberId: String, recipient: String, newToken: String?) {
         prefs.edit {
             putBoolean(WhatsAppConfig.KEY_ENABLED, enabled)
             putString(WhatsAppConfig.KEY_PHONE_NUMBER_ID, phoneNumberId.trim())
             putString(WhatsAppConfig.KEY_RECIPIENT, recipient.trim())
-            putBoolean(WhatsAppConfig.KEY_USE_TEMPLATE, useTemplate)
-            putString(WhatsAppConfig.KEY_TEMPLATE_NAME, templateName.trim())
-            putString(WhatsAppConfig.KEY_TEMPLATE_LANGUAGE, templateLanguage.trim().ifBlank { WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE })
         }
         // null means "the mask was left untouched" -> keep the stored token. A non-null
         // value writes it; SecureStore.write removes the secret when the value is blank,
@@ -176,9 +172,6 @@ class ChannelsViewModel(application: Application) : AndroidViewModel(application
         val config = WhatsAppConfig.load(context)
         if (!config.hasCredentials) {
             return "Set Phone Number ID, access token, and recipient first."
-        }
-        if (config.useTemplate && (config.templateName.isBlank() || config.templateLanguage.isBlank())) {
-            return "Template name and language are required when 'Use template' is on."
         }
         val body = "MC SMS\u2192WhatsApp Test \u2014 manual test send at ${System.currentTimeMillis()}"
         LogUtils.addToLog(context, "REAL SEND [WhatsApp] \u2192 To: ${config.recipient} | Msg: $body (manual test)")

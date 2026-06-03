@@ -24,7 +24,7 @@ The UI is a single-activity Jetpack Compose app with a Material 3 bottom-navigat
 
 | Channel detail (WhatsApp) | Filters |
 | --- | --- |
-| ![WhatsApp detail form: enable switch, Phone Number ID, write-only Access token, recipient, template toggle and fields, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders as removable chips, regex rules as editable rows, and a forwarding template](docs/screenshots/filters.png) |
+| ![WhatsApp detail form: enable switch, WhatsApp Phone Number ID, write-only Access token, recipient with a country-code hint, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders as removable chips, regex rules as editable rows, and a forwarding template](docs/screenshots/filters.png) |
 
 ## What it does
 
@@ -36,7 +36,7 @@ The UI is a single-activity Jetpack Compose app with a Material 3 bottom-navigat
 - Normalizes the body (NFD + strip combining marks + lowercase) and matches it against **any** of the configured regex patterns.
 - Optionally re-formats the outgoing text with a template (`%s` = source, `%t` = time, `%m` = original message).
 - Sends the result through **every operational channel** (toggle on AND credentials present):
-  - **WhatsApp** — `POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a `Bearer` token, as either a free-form `text` message (inside the customer 24‑hour window) or an **approved template** with the SMS body bound to a single body parameter.
+  - **WhatsApp** — `POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a `Bearer` token, as an **approved template** message. The template name and language are fixed in code (currently the prebuilt `hello_world`, which has no variables, so the SMS body isn't sent yet); swap in an approved template with a body parameter to forward the actual text.
   - **Telegram** — `POST https://api.telegram.org/bot{TOKEN}/sendMessage` with `chat_id` + `text` (web previews disabled).
   - **SMS** — `SmsManager.sendMultipartTextMessage` to the configured destination number; per-segment modem results are surfaced in the activity log.
 
@@ -75,7 +75,7 @@ The quickest and cheapest path is to use the **test phone number** that Meta pro
    2. *Users → System users → Add* — give it a name (e.g. `sms-forwarder`) and role **Admin**.
    3. With the new system user selected, click **Add assets** → **Apps** → pick your app → toggle **Full control**. Repeat **Add assets** → **WhatsApp accounts** → pick your WABA → toggle **Full control**.
    4. Click **Generate new token** → pick your app → **Token expiration: Never** → select scopes `whatsapp_business_messaging` and `whatsapp_business_management` → **Generate token** → copy it once (you cannot view it again).
-6. In this app, open the **Channels** tab and tap **WhatsApp**: paste **Phone Number ID**, **Access token**, and **Recipient** (E.164, e.g. `+3519...`). Leave **Use message template** ON and use the prebuilt `hello_world` / `en_US` for the very first ping, then either switch templates or turn the toggle off and rely on the 24-hour service window.
+6. In this app, open the **Channels** tab and tap **WhatsApp**: paste **WhatsApp Phone Number ID**, **Access token**, and **WhatsApp Recipient Phone Number** (full number with country code, no `+`, e.g. `351912345678`). The message template is fixed in code — it ships pointing at the prebuilt `hello_world` template, so **Send test** delivers a template message with no app content. When your own template is approved by WhatsApp, change the constants in `WhatsAppCloudChannel` to send the SMS body.
 
 The **Access token** field is write-only: once saved it loads blank with a saved hint — type a new value to replace it, or leave it blank to keep the stored token.
 
@@ -135,11 +135,12 @@ Filters are shared by every channel and live on the **Channels** tab under **Sen
 **WhatsApp Cloud API** (Channels tab → WhatsApp)
 
 - **Enabled** — master toggle for the channel.
-- **Phone Number ID** — numeric, from Meta.
+- **WhatsApp Phone Number ID** — numeric, from Meta.
 - **Access token** — Bearer token; stored encrypted at rest and write-only in the UI (see warning above).
-- **Recipient** — destination WhatsApp number in E.164 form (`+35191XXXXXXX`).
-- **Use message template** — on by default. When on, fill **Template name** and **Template language** (e.g. `en_US`). When off, messages are sent as free-form `text` (only works inside the 24-hour customer service window).
+- **WhatsApp Recipient Phone Number** — destination number with country code and no `+` (e.g. `351912345678`).
 - **Send test** button — POSTs a synthetic message to your recipient using your current WhatsApp settings.
+
+The message template is **fixed in code** (`WhatsAppCloudChannel`), not chosen in the UI. It currently uses the prebuilt `hello_world` template (no variables), so forwarded SMS content isn't sent yet; swap the constants for an approved template with a body parameter when ready.
 
 **Telegram Bot API** (Channels tab → Telegram)
 
