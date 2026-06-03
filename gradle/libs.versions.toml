@@ -9,9 +9,7 @@ minSdk = "33"
 targetSdk = "36"
 
 # Libraries
-googleMaterial = "1.13.0"
 androidxCoreKtx = "1.17.0"
-androidxAppCompat = "1.7.1"
 androidxActivity = "1.11.0"
 androidxSecurityCrypto = "1.1.0-alpha06"
 
@@ -23,10 +21,8 @@ navigationCompose = "2.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidxActivity" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "androidxSecurityCrypto" }
-google-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
 
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

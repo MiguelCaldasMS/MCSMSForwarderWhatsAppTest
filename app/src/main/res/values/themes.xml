@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MCSmsForwarderMultiChannel" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
+    <!-- The UI is fully Jetpack Compose; this theme only styles the launch window
+         (background + system bars) before Compose draws. Dynamic color and Material 3
+         theming are applied at runtime in MCSmsForwarderTheme, so no Material Components
+         (google.android.material) dependency is required here. -->
+    <style name="Theme.MCSmsForwarderMultiChannel" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
 </resources>

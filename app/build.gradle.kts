@@ -74,9 +74,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.google.material)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.security.crypto)
 
