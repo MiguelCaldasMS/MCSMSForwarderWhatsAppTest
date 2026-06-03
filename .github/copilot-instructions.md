@@ -11,7 +11,7 @@ No test suite or linter is configured.
 
 ## Architecture
 
-Single-module Android app (`:app`), Kotlin, no Compose — XML layouts with Material 3.
+Single-module Android app (`:app`), Kotlin. The UI currently uses XML layouts with Material 3.
 
 **Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`prefs.getBoolean("master_enabled", true)`,
 default ON) → bail if **no channel is operational** (each channel: enabled toggle on AND credentials
@@ -83,8 +83,8 @@ separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via `SecureStor
 calling `SecureStore.read(context, …)`, so `WhatsAppConfig.load`/`TelegramConfig.load` take a
 `Context` (not a `SharedPreferences`).
 
-**Activities** are plain `AppCompatActivity` subclasses — no fragments, no ViewModel, no
-navigation component. Settings fields are **debounced-saved** (~150 ms after the last keystroke
+**Activities** are currently plain `AppCompatActivity` subclasses. Settings fields are
+**debounced-saved** (~150 ms after the last keystroke
 via `Handler.postDelayed`) and force-flushed in `onPause()` via `flushPendingWrites()`. Dynamic
 rows that share an `EditText` id (e.g. `R.id.senderEntry`) set `isSaveEnabled = false` so view-
 state restore doesn't copy the last-focused row's text onto every row after recreation.

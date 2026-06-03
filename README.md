@@ -154,7 +154,7 @@ A SMS is forwarded to **every channel whose toggle is on and whose credentials a
 
 ## Architecture
 
-Single-module Android app (`:app`), Kotlin, no Compose — XML layouts with Material 3.
+Single-module Android app (`:app`), Kotlin. The UI currently uses XML layouts with Material 3.
 
 **Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`mc_sms_fwd_wa`/`master_enabled`, default ON) → bail if no channel is operational (enabled toggle on AND credentials present) → reassemble multipart → SMS loop guard (suppress messages from the SMS forward destination) → match sender via `SenderMatcher` → normalize body via `TextNormalizer.normalizeForMatching` → compile each regex once and match any → apply optional `ForwardTemplate` → `BroadcastReceiver.goAsync()` → fan out the same body to **every operational channel** in parallel. A shared `AtomicInteger` counts pending channel callbacks; once they all complete, the receiver records exactly one stat (if any channel succeeded) and calls `pending.finish()`.
 
