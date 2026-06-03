@@ -10,6 +10,5 @@ object TextNormalizer {
     // Unicode category Mn) and lowercase using Locale.ROOT for deterministic folding,
     // so user-supplied patterns can be written diacritic-free and case-free.
     fun normalizeForMatching(text: String): String =
-        COMBINING_MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "")
-            .lowercase(Locale.ROOT)
+        COMBINING_MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "").lowercase(Locale.ROOT)
 }

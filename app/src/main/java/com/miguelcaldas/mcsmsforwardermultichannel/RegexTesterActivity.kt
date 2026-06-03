@@ -43,13 +43,13 @@ class RegexTesterActivity : AppCompatActivity() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
 
         val contentScroll = findViewById<View>(R.id.contentScroll)
         ViewCompat.setOnApplyWindowInsetsListener(contentScroll) { v, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
-            )
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
             insets
         }
@@ -60,8 +60,12 @@ class RegexTesterActivity : AppCompatActivity() {
         testPattern = findViewById(R.id.testPattern)
         testResult = findViewById(R.id.testResult)
 
-        findViewById<MaterialButton>(R.id.testButton).setOnClickListener { runTest() }
-        findViewById<MaterialButton>(R.id.savePatternButton).setOnClickListener { saveCurrentPattern() }
+        findViewById<MaterialButton>(R.id.testButton).setOnClickListener {
+            runTest()
+        }
+        findViewById<MaterialButton>(R.id.savePatternButton).setOnClickListener {
+            saveCurrentPattern()
+        }
     }
 
     private fun runTest() {
@@ -83,8 +87,7 @@ class RegexTesterActivity : AppCompatActivity() {
 
         val allowedSenders = SenderListStore.load(prefs).filter { it.isNotBlank() }
         val iso = SenderMatcher.deviceCountryIso(this)
-        val senderAllowed = allowedSenders.isNotEmpty() &&
-            SenderMatcher.matches(allowedSenders, sender, iso)
+        val senderAllowed = allowedSenders.isNotEmpty() && SenderMatcher.matches(allowedSenders, sender, iso)
         val normalized = TextNormalizer.normalizeForMatching(message)
         val patternMatches = regex.containsMatchIn(normalized)
 
@@ -95,24 +98,26 @@ class RegexTesterActivity : AppCompatActivity() {
         val tgConfig = TelegramConfig.load(this)
         val smsConfig = SmsConfig.load(prefs)
         val operationalChannels = buildList {
-            if (waConfig.isOperational) add("WhatsApp ${waConfig.recipient}")
-            if (tgConfig.isOperational) add("Telegram chat ${tgConfig.chatId}")
-            if (smsConfig.isOperational) add("SMS ${smsConfig.destination}")
+            if (waConfig.isOperational) {
+                add("WhatsApp ${waConfig.recipient}")
+            }
+            if (tgConfig.isOperational) {
+                add("Telegram chat ${tgConfig.chatId}")
+            }
+            if (smsConfig.isOperational) {
+                add("SMS ${smsConfig.destination}")
+            }
         }
 
         val template = prefs.getString("forwardTemplate", "").orEmpty()
-        val outgoingBody = if (template.isEmpty()) message
-        else ForwardTemplate.apply(template, sender, System.currentTimeMillis(), message)
+        val outgoingBody = if (template.isEmpty()) message else ForwardTemplate.apply(template, sender, System.currentTimeMillis(), message)
 
         val pipelineWouldSend = senderAllowed && patternMatches && operationalChannels.isNotEmpty()
 
         val builder = StringBuilder()
-        builder.append("Sender allowed: ").append(if (senderAllowed) "yes" else "no")
-            .append(" (against ").append(allowedSenders.size).append(" entries)\n")
+        builder.append("Sender allowed: ").append(if (senderAllowed) "yes" else "no").append(" (against ").append(allowedSenders.size).append(" entries)\n")
         builder.append("Pattern matches: ").append(if (patternMatches) "yes" else "no").append('\n')
-        builder.append("Operational channels: ")
-            .append(if (operationalChannels.isEmpty()) "none" else operationalChannels.joinToString(", "))
-            .append('\n')
+        builder.append("Operational channels: ").append(if (operationalChannels.isEmpty()) "none" else operationalChannels.joinToString(", ")).append('\n')
         builder.append('\n')
         if (pipelineWouldSend) {
             builder.append("Would forward to ").append(operationalChannels.joinToString(", ")).append(":\n")
@@ -125,10 +130,7 @@ class RegexTesterActivity : AppCompatActivity() {
         tintResult(if (pipelineWouldSend) ResultTone.POSITIVE else ResultTone.NEUTRAL)
 
         if (pipelineWouldSend) {
-            LogUtils.addToLog(
-                this,
-                "FAKE SEND \u2192 to ${operationalChannels.joinToString(", ")}: \"$outgoingBody\""
-            )
+            LogUtils.addToLog(this, "FAKE SEND \u2192 to ${operationalChannels.joinToString(", ")}: \"$outgoingBody\"")
         }
     }
 
@@ -151,11 +153,7 @@ class RegexTesterActivity : AppCompatActivity() {
         }
         val invalid = runCatching { Regex(pattern) }.exceptionOrNull()
         if (invalid != null) {
-            Snackbar.make(
-                rootContainer,
-                "Invalid regex: ${invalid.message}",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "Invalid regex: ${invalid.message}", Snackbar.LENGTH_LONG).show()
             return
         }
         val current = RegexListStore.load(prefs).toMutableList()

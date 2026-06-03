@@ -20,8 +20,7 @@ data class WhatsAppConfig(
         get() = phoneNumberId.isNotBlank() && accessToken.isNotBlank() && recipient.isNotBlank()
 
     val isComplete: Boolean
-        get() = hasCredentials &&
-            (!useTemplate || (templateName.isNotBlank() && templateLanguage.isNotBlank()))
+        get() = hasCredentials && (!useTemplate || (templateName.isNotBlank() && templateLanguage.isNotBlank()))
 
     val isOperational: Boolean
         get() = enabled && isComplete
@@ -49,8 +48,7 @@ data class WhatsAppConfig(
                 recipient = prefs.getString(KEY_RECIPIENT, "").orEmpty().trim(),
                 useTemplate = prefs.getBoolean(KEY_USE_TEMPLATE, true),
                 templateName = prefs.getString(KEY_TEMPLATE_NAME, "").orEmpty().trim(),
-                templateLanguage = prefs.getString(KEY_TEMPLATE_LANGUAGE, DEFAULT_TEMPLATE_LANGUAGE)
-                    .orEmpty().ifBlank { DEFAULT_TEMPLATE_LANGUAGE },
+                templateLanguage = prefs.getString(KEY_TEMPLATE_LANGUAGE, DEFAULT_TEMPLATE_LANGUAGE).orEmpty().ifBlank { DEFAULT_TEMPLATE_LANGUAGE },
             )
         }
     }

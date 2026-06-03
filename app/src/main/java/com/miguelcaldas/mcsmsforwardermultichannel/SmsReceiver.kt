@@ -23,23 +23,33 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+        if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
+            return
+        }
 
         val prefs = context.getSharedPreferences("mc_sms_fwd_wa", Context.MODE_PRIVATE)
         // Master kill-switch: one prefs key checked before any work. Default ON so existing
         // installs are unaffected.
-        if (!prefs.getBoolean("master_enabled", true)) return
+        if (!prefs.getBoolean("master_enabled", true)) {
+            return
+        }
 
         val waConfig = WhatsAppConfig.load(context)
         val tgConfig = TelegramConfig.load(context)
         val smsConfig = SmsConfig.load(prefs)
         // Bail before any other work if no outbound channel is enabled+configured.
-        if (!waConfig.isOperational && !tgConfig.isOperational && !smsConfig.isOperational) return
+        if (!waConfig.isOperational && !tgConfig.isOperational && !smsConfig.isOperational) {
+            return
+        }
 
         val allowedSenders = SenderListStore.load(prefs)
-        if (allowedSenders.isEmpty()) return
+        if (allowedSenders.isEmpty()) {
+            return
+        }
         val patterns = RegexListStore.load(prefs)
-        if (patterns.isEmpty()) return
+        if (patterns.isEmpty()) {
+            return
+        }
         val forwardTemplate = prefs.getString("forwardTemplate", "").orEmpty()
 
         // The telephony framework reassembles concatenated SMS using the UDH (reference,
@@ -47,11 +57,15 @@ class SmsReceiver : BroadcastReceiver() {
         // has arrived. The returned array therefore represents a single logical message
         // with its segments already ordered; concatenating their bodies yields the full text.
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
-        if (messages.isEmpty()) return
+        if (messages.isEmpty()) {
+            return
+        }
 
         val sender = messages[0].originatingAddress ?: return
         val fullBody = buildString {
-            for (sms in messages) append(sms.messageBody ?: "")
+            for (sms in messages) {
+                append(sms.messageBody ?: "")
+            }
         }
 
         val countryIso = SenderMatcher.deviceCountryIso(context)
@@ -61,17 +75,14 @@ class SmsReceiver : BroadcastReceiver() {
         // indefinitely if the destination is also an allowed sender. WhatsApp/Telegram
         // run on a different transport and cannot trigger this, so the guard is scoped
         // to the SMS channel's destination.
-        if (smsConfig.isOperational &&
-            PhoneNumberUtils.areSamePhoneNumber(sender, smsConfig.destination, countryIso)
-        ) {
-            LogUtils.addToLog(
-                context,
-                "LOOP GUARD → suppressed from $sender (= SMS forward destination)"
-            )
+        if (smsConfig.isOperational && PhoneNumberUtils.areSamePhoneNumber(sender, smsConfig.destination, countryIso)) {
+            LogUtils.addToLog(context, "LOOP GUARD \u2192 suppressed from $sender (= SMS forward destination)")
             return
         }
 
-        if (!SenderMatcher.matches(allowedSenders, sender, countryIso)) return
+        if (!SenderMatcher.matches(allowedSenders, sender, countryIso)) {
+            return
+        }
 
         // Compile each pattern at most once per call; the previous form rebuilt Regex
         // objects inside `any { }` on every iteration. Patterns that fail to compile
@@ -83,10 +94,11 @@ class SmsReceiver : BroadcastReceiver() {
         val bodyMatches = patterns.asSequence()
             .mapNotNull { runCatching { Regex(it) }.getOrNull() }
             .any { it.containsMatchIn(normalizedBody) }
-        if (!bodyMatches) return
+        if (!bodyMatches) {
+            return
+        }
 
-        val outgoingBody = if (forwardTemplate.isEmpty()) fullBody
-            else ForwardTemplate.apply(forwardTemplate, sender, messages[0].timestampMillis, fullBody)
+        val outgoingBody = if (forwardTemplate.isEmpty()) fullBody else ForwardTemplate.apply(forwardTemplate, sender, messages[0].timestampMillis, fullBody)
 
         // Network I/O must outlive onReceive returning, so hand the receiver off to
         // goAsync() and let each channel report completion. The forward stat is
@@ -96,39 +108,30 @@ class SmsReceiver : BroadcastReceiver() {
         val sendViaWa = waConfig.isOperational
         val sendViaTg = tgConfig.isOperational
         val sendViaSms = smsConfig.isOperational
-        val remaining = AtomicInteger(
-            (if (sendViaWa) 1 else 0) +
-                (if (sendViaTg) 1 else 0) +
-                (if (sendViaSms) 1 else 0)
-        )
+        val remaining = AtomicInteger((if (sendViaWa) 1 else 0) + (if (sendViaTg) 1 else 0) + (if (sendViaSms) 1 else 0))
         val anySuccess = AtomicBoolean(false)
         val onChannelDone: (Boolean) -> Unit = { success ->
-            if (success) anySuccess.set(true)
+            if (success) {
+                anySuccess.set(true)
+            }
             if (remaining.decrementAndGet() == 0) {
-                if (anySuccess.get()) ForwardStatsStore.recordForward(app)
+                if (anySuccess.get()) {
+                    ForwardStatsStore.recordForward(app)
+                }
                 pending.finish()
             }
         }
 
         if (sendViaWa) {
-            LogUtils.addToLog(
-                context,
-                "REAL SEND [WhatsApp] \u2192 To: ${waConfig.recipient} | Msg: $outgoingBody"
-            )
+            LogUtils.addToLog(context, "REAL SEND [WhatsApp] \u2192 To: ${waConfig.recipient} | Msg: $outgoingBody")
             WhatsAppCloudChannel.send(context, waConfig, outgoingBody, onChannelDone)
         }
         if (sendViaTg) {
-            LogUtils.addToLog(
-                context,
-                "REAL SEND [Telegram] \u2192 To: chat ${tgConfig.chatId} | Msg: $outgoingBody"
-            )
+            LogUtils.addToLog(context, "REAL SEND [Telegram] \u2192 To: chat ${tgConfig.chatId} | Msg: $outgoingBody")
             TelegramChannel.send(context, tgConfig, outgoingBody, onChannelDone)
         }
         if (sendViaSms) {
-            LogUtils.addToLog(
-                context,
-                "REAL SEND [SMS] \u2192 To: ${smsConfig.destination} | Msg: $outgoingBody"
-            )
+            LogUtils.addToLog(context, "REAL SEND [SMS] \u2192 To: ${smsConfig.destination} | Msg: $outgoingBody")
             SmsChannel.send(context, smsConfig, outgoingBody, onChannelDone)
         }
     }

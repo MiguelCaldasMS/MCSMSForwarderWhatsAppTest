@@ -26,16 +26,16 @@ object SecureStore {
         return synchronized(this) {
             cached ?: run {
                 val app = context.applicationContext
-                val masterKey = MasterKey.Builder(app)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
+                val masterKey = MasterKey.Builder(app).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
                 EncryptedSharedPreferences.create(
                     app,
                     FILE,
                     masterKey,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-                ).also { cached = it }
+                ).also {
+                    cached = it
+                }
             }
         }
     }
@@ -50,7 +50,11 @@ object SecureStore {
     /** Stores [value] (trimmed), or removes the secret entirely when [value] is blank. */
     fun write(context: Context, key: String, value: String) {
         prefs(context).edit {
-            if (value.isBlank()) remove(key) else putString(key, value.trim())
+            if (value.isBlank()) {
+                remove(key)
+            } else {
+                putString(key, value.trim())
+            }
         }
     }
 }

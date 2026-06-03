@@ -22,7 +22,9 @@ object LogUtils {
     // RegexTesterActivity would race. Serializing them off the main thread keeps
     // broadcast onReceive callbacks snappy and avoids interleaved prune/write.
     private val writeExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "mc-log-writer").apply { isDaemon = true }
+        Thread(r, "mc-log-writer").apply {
+            isDaemon = true
+        }
     }
 
     private data class Entry(val timestamp: Long, val message: String)
@@ -43,7 +45,9 @@ object LogUtils {
             val entries = loadEntries(prefs).toMutableList()
             entries.add(Entry(timestamp, sanitized))
             val pruned = prune(entries)
-            prefs.edit { putString(LOGS_KEY, serialize(pruned)) }
+            prefs.edit {
+                putString(LOGS_KEY, serialize(pruned))
+            }
         }
     }
 
@@ -52,14 +56,14 @@ object LogUtils {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val entries = loadEntries(prefs)
         val fmt = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
-        return entries
-            .sortedByDescending { it.timestamp }
-            .map { "${fmt.format(Date(it.timestamp))} → ${it.message}" }
+        return entries.sortedByDescending { it.timestamp }.map { "${fmt.format(Date(it.timestamp))} → ${it.message}" }
     }
 
     fun clearLogs(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit { remove(LOGS_KEY) }
+        prefs.edit {
+            remove(LOGS_KEY)
+        }
     }
 
     private fun loadEntries(prefs: SharedPreferences): List<Entry> =
@@ -79,10 +83,14 @@ object LogUtils {
         entries.joinToString(LINE_SEP) { "${it.timestamp}$FIELD_SEP${it.message}" }
 
     private fun parse(raw: String): List<Entry> {
-        if (raw.isEmpty()) return emptyList()
+        if (raw.isEmpty()) {
+            return emptyList()
+        }
         return raw.split(LINE_SEP).mapNotNull { line ->
             val idx = line.indexOf(FIELD_SEP)
-            if (idx <= 0) return@mapNotNull null
+            if (idx <= 0) {
+                return@mapNotNull null
+            }
             val ts = line.substring(0, idx).toLongOrNull() ?: return@mapNotNull null
             Entry(ts, line.substring(idx + 1))
         }

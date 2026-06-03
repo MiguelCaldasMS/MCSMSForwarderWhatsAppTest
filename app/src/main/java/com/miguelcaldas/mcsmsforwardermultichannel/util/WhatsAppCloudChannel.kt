@@ -25,15 +25,12 @@ object WhatsAppCloudChannel {
     // open two simultaneous HTTPS connections for the same incoming SMS, and
     // keeps onReceive return time short on the main thread.
     private val sendExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "wa-sender").apply { isDaemon = true }
+        Thread(r, "wa-sender").apply {
+            isDaemon = true
+        }
     }
 
-    fun send(
-        context: Context,
-        config: WhatsAppConfig,
-        body: String,
-        onComplete: (Boolean) -> Unit = {},
-    ) {
+    fun send(context: Context, config: WhatsAppConfig, body: String, onComplete: (Boolean) -> Unit = {}) {
         val app = context.applicationContext
         if (!config.hasCredentials) {
             LogUtils.addToLog(app, "SEND FAILED [WhatsApp] → missing config")
@@ -48,27 +45,17 @@ object WhatsAppCloudChannel {
                 when {
                     result != null && result.success -> {
                         success = true
-                        LogUtils.addToLog(
-                            app,
-                            "SEND OK [WhatsApp] → ${config.recipient} (HTTP ${result.statusCode})"
-                        )
+                        LogUtils.addToLog(app, "SEND OK [WhatsApp] → ${config.recipient} (HTTP ${result.statusCode})")
                     }
                     result != null -> {
                         // Meta echoes a malformed/invalid token back in error.message (code 190),
                         // so redact the access token from the summary before logging.
-                        val detail = result.errorSummary?.takeIf { it.isNotBlank() }
-                            ?.let { " ${redactSecret(it, config.accessToken)}" }.orEmpty()
-                        LogUtils.addToLog(
-                            app,
-                            "SEND FAILED [WhatsApp] → ${config.recipient} (HTTP ${result.statusCode})$detail"
-                        )
+                        val detail = result.errorSummary?.takeIf { it.isNotBlank() }?.let { " ${redactSecret(it, config.accessToken)}" }.orEmpty()
+                        LogUtils.addToLog(app, "SEND FAILED [WhatsApp] → ${config.recipient} (HTTP ${result.statusCode})$detail")
                     }
                     else -> {
                         val msg = redactSecret(outcome.exceptionOrNull()?.message.orEmpty(), config.accessToken)
-                        LogUtils.addToLog(
-                            app,
-                            "SEND FAILED [WhatsApp] → ${config.recipient} (transport) $msg".trimEnd()
-                        )
+                        LogUtils.addToLog(app, "SEND FAILED [WhatsApp] → ${config.recipient} (transport) $msg".trimEnd())
                     }
                 }
             } finally {
@@ -160,16 +147,24 @@ object WhatsAppCloudChannel {
     }
 
     private fun summarizeError(raw: String): String {
-        if (raw.isBlank()) return ""
+        if (raw.isBlank()) {
+            return ""
+        }
         return runCatching {
             val err = JSONObject(raw).optJSONObject("error") ?: return raw.take(180)
             val code = err.optInt("code", -1)
             val type = err.optString("type")
             val msg = err.optString("message")
             buildString {
-                if (code != -1) append("code=").append(code).append(' ')
-                if (type.isNotEmpty()) append("type=").append(type).append(' ')
-                if (msg.isNotEmpty()) append("msg=").append(msg)
+                if (code != -1) {
+                    append("code=").append(code).append(' ')
+                }
+                if (type.isNotEmpty()) {
+                    append("type=").append(type).append(' ')
+                }
+                if (msg.isNotEmpty()) {
+                    append("msg=").append(msg)
+                }
             }.trim().take(240)
         }.getOrElse { raw.take(180) }
     }

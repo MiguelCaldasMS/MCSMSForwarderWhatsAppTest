@@ -20,7 +20,9 @@ object ForwardStatsStore {
             val first = prefs.getLong(KEY_FIRST, 0L)
             prefs.edit {
                 putLong(KEY_COUNT, count + 1)
-                if (first == 0L) putLong(KEY_FIRST, timestamp)
+                if (first == 0L) {
+                    putLong(KEY_FIRST, timestamp)
+                }
                 putLong(KEY_LAST, timestamp)
             }
         }

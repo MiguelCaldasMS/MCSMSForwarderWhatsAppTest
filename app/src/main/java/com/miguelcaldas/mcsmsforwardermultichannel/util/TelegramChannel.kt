@@ -23,15 +23,12 @@ object TelegramChannel {
     private const val READ_TIMEOUT_MS = 20_000
 
     private val sendExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "tg-sender").apply { isDaemon = true }
+        Thread(r, "tg-sender").apply {
+            isDaemon = true
+        }
     }
 
-    fun send(
-        context: Context,
-        config: TelegramConfig,
-        body: String,
-        onComplete: (Boolean) -> Unit = {},
-    ) {
+    fun send(context: Context, config: TelegramConfig, body: String, onComplete: (Boolean) -> Unit = {}) {
         val app = context.applicationContext
         if (!config.hasCredentials) {
             LogUtils.addToLog(app, "SEND FAILED [Telegram] → missing config")
@@ -46,28 +43,18 @@ object TelegramChannel {
                 when {
                     result != null && result.success -> {
                         success = true
-                        LogUtils.addToLog(
-                            app,
-                            "SEND OK [Telegram] → chat ${config.chatId} (HTTP ${result.statusCode})"
-                        )
+                        LogUtils.addToLog(app, "SEND OK [Telegram] → chat ${config.chatId} (HTTP ${result.statusCode})")
                     }
                     result != null -> {
-                        val detail = result.errorSummary?.takeIf { it.isNotBlank() }
-                            ?.let { " ${redactSecret(it, config.botToken)}" }.orEmpty()
-                        LogUtils.addToLog(
-                            app,
-                            "SEND FAILED [Telegram] → chat ${config.chatId} (HTTP ${result.statusCode})$detail"
-                        )
+                        val detail = result.errorSummary?.takeIf { it.isNotBlank() }?.let { " ${redactSecret(it, config.botToken)}" }.orEmpty()
+                        LogUtils.addToLog(app, "SEND FAILED [Telegram] → chat ${config.chatId} (HTTP ${result.statusCode})$detail")
                     }
                     else -> {
                         // The bot token lives in the request URL, and HttpURLConnection exceptions
                         // (FileNotFoundException, SSL/IO errors) can embed that full URL — so redact
                         // both the raw token and its URL-encoded form before logging.
                         val msg = redactSecret(outcome.exceptionOrNull()?.message.orEmpty(), config.botToken)
-                        LogUtils.addToLog(
-                            app,
-                            "SEND FAILED [Telegram] → chat ${config.chatId} (transport) $msg".trimEnd()
-                        )
+                        LogUtils.addToLog(app, "SEND FAILED [Telegram] → chat ${config.chatId} (transport) $msg".trimEnd())
                     }
                 }
             } finally {
@@ -84,7 +71,9 @@ object TelegramChannel {
      * form are replaced with a fixed placeholder.
      */
     private fun redactSecret(text: String, secret: String): String {
-        if (secret.isBlank()) return text
+        if (secret.isBlank()) {
+            return text
+        }
         val encoded = runCatching { URLEncoder.encode(secret, "UTF-8") }.getOrDefault(secret)
         return text.replace(secret, "[redacted]").replace(encoded, "[redacted]")
     }
@@ -125,14 +114,20 @@ object TelegramChannel {
     }
 
     private fun summarizeError(raw: String): String {
-        if (raw.isBlank()) return ""
+        if (raw.isBlank()) {
+            return ""
+        }
         return runCatching {
             val obj = JSONObject(raw)
             val code = obj.optInt("error_code", -1)
             val desc = obj.optString("description")
             buildString {
-                if (code != -1) append("code=").append(code).append(' ')
-                if (desc.isNotEmpty()) append("desc=").append(desc)
+                if (code != -1) {
+                    append("code=").append(code).append(' ')
+                }
+                if (desc.isNotEmpty()) {
+                    append("desc=").append(desc)
+                }
             }.trim().take(240)
         }.getOrElse { raw.take(180) }
     }

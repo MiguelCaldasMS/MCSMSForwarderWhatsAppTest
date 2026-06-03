@@ -31,10 +31,11 @@ class LogActivity : AppCompatActivity() {
     private enum class Filter { All, SendOk, SendFailed, FakeSend, Boot }
 
     // Refresh the log view live when a new entry is written while this screen is visible.
-    private val logChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == null || key == LOGS_KEY) refreshLogs()
+    private val logChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == null || key == LOGS_KEY) {
+            refreshLogs()
         }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -45,15 +46,15 @@ class LogActivity : AppCompatActivity() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
 
         prefs = getSharedPreferences("mc_sms_fwd_wa", MODE_PRIVATE)
 
         val contentScroll = findViewById<View>(R.id.contentScroll)
         ViewCompat.setOnApplyWindowInsetsListener(contentScroll) { v, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
-            )
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
             insets
         }
@@ -75,7 +76,9 @@ class LogActivity : AppCompatActivity() {
             LogUtils.clearLogs(this)
             refreshLogs()
         }
-        findViewById<MaterialButton>(R.id.shareLogs).setOnClickListener { shareLogs() }
+        findViewById<MaterialButton>(R.id.shareLogs).setOnClickListener {
+            shareLogs()
+        }
     }
 
     override fun onResume() {
@@ -100,8 +103,7 @@ class LogActivity : AppCompatActivity() {
     private fun refreshLogs() {
         val logs = LogUtils.getLogs(this).filter { matchesFilter(it) }
         if (logs.isEmpty()) {
-            logText.text = if (currentFilter == Filter.All) "No logs yet."
-            else "No entries match this filter."
+            logText.text = if (currentFilter == Filter.All) "No logs yet." else "No entries match this filter."
             return
         }
         val builder = SpannableStringBuilder()
@@ -112,18 +114,9 @@ class LogActivity : AppCompatActivity() {
             // Order matters: FAILED is checked before generic success so
             // "SEND FAILED" is colored red, not green.
             when {
-                entry.contains("FAILED") -> builder.setSpan(
-                    ForegroundColorSpan("#C62828".toColorInt()),
-                    start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                entry.contains("REAL SEND") || entry.contains("SEND OK") -> builder.setSpan(
-                    ForegroundColorSpan("#2E7D32".toColorInt()),
-                    start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                entry.contains("FAKE SEND") -> builder.setSpan(
-                    ForegroundColorSpan("#1565C0".toColorInt()),
-                    start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
+                entry.contains("FAILED") -> builder.setSpan(ForegroundColorSpan("#C62828".toColorInt()), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                entry.contains("REAL SEND") || entry.contains("SEND OK") -> builder.setSpan(ForegroundColorSpan("#2E7D32".toColorInt()), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                entry.contains("FAKE SEND") -> builder.setSpan(ForegroundColorSpan("#1565C0".toColorInt()), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         logText.text = builder

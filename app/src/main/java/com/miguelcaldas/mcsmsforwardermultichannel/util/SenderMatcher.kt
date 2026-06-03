@@ -11,15 +11,12 @@ object SenderMatcher {
     // (live pipeline) and RegexTesterActivity (dry-run) so the two cannot drift.
     fun matches(allowedSenders: List<String>, sender: String, countryIso: String): Boolean =
         allowedSenders.any { entry ->
-            entry.equals(sender, ignoreCase = true) ||
-                PhoneNumberUtils.areSamePhoneNumber(entry, sender, countryIso)
+            entry.equals(sender, ignoreCase = true) || PhoneNumberUtils.areSamePhoneNumber(entry, sender, countryIso)
         }
 
     fun deviceCountryIso(context: Context): String {
         val tm = context.getSystemService(TelephonyManager::class.java)
-        val iso = tm?.networkCountryIso?.takeIf { it.isNotEmpty() }
-            ?: tm?.simCountryIso?.takeIf { it.isNotEmpty() }
-            ?: Locale.getDefault().country
+        val iso = tm?.networkCountryIso?.takeIf { it.isNotEmpty() } ?: tm?.simCountryIso?.takeIf { it.isNotEmpty() } ?: Locale.getDefault().country
         return iso.lowercase(Locale.ROOT)
     }
 }

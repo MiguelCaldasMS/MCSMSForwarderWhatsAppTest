@@ -35,12 +35,7 @@ object SmsChannel {
     @Volatile
     private var registered = false
 
-    fun send(
-        context: Context,
-        config: SmsConfig,
-        body: String,
-        onComplete: (Boolean) -> Unit = {},
-    ) {
+    fun send(context: Context, config: SmsConfig, body: String, onComplete: (Boolean) -> Unit = {}) {
         val app = context.applicationContext
         if (!config.hasCredentials) {
             LogUtils.addToLog(app, "SEND FAILED [SMS] → missing config")
@@ -49,8 +44,7 @@ object SmsChannel {
         }
         var dispatched = false
         try {
-            val smsManager = app.getSystemService(SmsManager::class.java)
-                ?: throw IllegalStateException("SmsManager unavailable")
+            val smsManager = app.getSystemService(SmsManager::class.java) ?: throw IllegalStateException("SmsManager unavailable")
             val parts = smsManager.divideMessage(body)
             val sentIntents = buildSentIntents(app, parts.size, config.destination)
             smsManager.sendMultipartTextMessage(config.destination, null, parts, sentIntents, null)
@@ -58,72 +52,50 @@ object SmsChannel {
         } catch (e: Exception) {
             // SecurityException (missing SEND_SMS), IllegalArgumentException (empty body /
             // bad destination), or any modem-dispatch failure surfaced synchronously.
-            LogUtils.addToLog(
-                app,
-                "SEND FAILED [SMS] → ${config.destination} (dispatch) ${e.message.orEmpty()}".trimEnd()
-            )
+            LogUtils.addToLog(app, "SEND FAILED [SMS] → ${config.destination} (dispatch) ${e.message.orEmpty()}".trimEnd())
         } finally {
             onComplete(dispatched)
         }
     }
 
-    private fun buildSentIntents(
-        app: Context,
-        partCount: Int,
-        destination: String,
-    ): ArrayList<PendingIntent> {
+    private fun buildSentIntents(app: Context, partCount: Int, destination: String): ArrayList<PendingIntent> {
         ensureRegistered(app)
         val list = ArrayList<PendingIntent>(partCount)
         for (i in 0 until partCount) {
-            val intent = Intent(ACTION)
-                .setPackage(app.packageName)
-                .putExtra(EXTRA_DESTINATION, destination)
-                .putExtra(EXTRA_PART_INDEX, i)
-                .putExtra(EXTRA_PART_COUNT, partCount)
+            val intent = Intent(ACTION).setPackage(app.packageName).putExtra(EXTRA_DESTINATION, destination).putExtra(EXTRA_PART_INDEX, i).putExtra(EXTRA_PART_COUNT, partCount)
             // Unique requestCode per PendingIntent so the system keeps them
             // distinct rather than collapsing to one shared instance.
             val requestCode = sequence.incrementAndGet()
-            list.add(
-                PendingIntent.getBroadcast(
-                    app, requestCode, intent,
-                    PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-                )
-            )
+            list.add(PendingIntent.getBroadcast(app, requestCode, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE))
         }
         return list
     }
 
     @Synchronized
     private fun ensureRegistered(app: Context) {
-        if (registered) return
-        app.registerReceiver(
-            ResultReceiver,
-            IntentFilter(ACTION),
-            Context.RECEIVER_NOT_EXPORTED
-        )
+        if (registered) {
+            return
+        }
+        app.registerReceiver(ResultReceiver, IntentFilter(ACTION), Context.RECEIVER_NOT_EXPORTED)
         registered = true
     }
 
     private object ResultReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action != ACTION) return
+            if (intent.action != ACTION) {
+                return
+            }
             val destination = intent.getStringExtra(EXTRA_DESTINATION) ?: "(unknown)"
             val idx = intent.getIntExtra(EXTRA_PART_INDEX, -1) + 1
             val total = intent.getIntExtra(EXTRA_PART_COUNT, -1)
             val tag = if (total > 1) " part $idx/$total" else ""
             val msg = when (resultCode) {
-                Activity.RESULT_OK ->
-                    "SEND OK [SMS]$tag → $destination"
-                SmsManager.RESULT_ERROR_GENERIC_FAILURE ->
-                    "SEND FAILED [SMS]$tag → $destination (generic failure)"
-                SmsManager.RESULT_ERROR_NO_SERVICE ->
-                    "SEND FAILED [SMS]$tag → $destination (no service)"
-                SmsManager.RESULT_ERROR_NULL_PDU ->
-                    "SEND FAILED [SMS]$tag → $destination (null PDU)"
-                SmsManager.RESULT_ERROR_RADIO_OFF ->
-                    "SEND FAILED [SMS]$tag → $destination (radio off)"
-                else ->
-                    "SEND FAILED [SMS]$tag → $destination (code $resultCode)"
+                Activity.RESULT_OK -> "SEND OK [SMS]$tag → $destination"
+                SmsManager.RESULT_ERROR_GENERIC_FAILURE -> "SEND FAILED [SMS]$tag → $destination (generic failure)"
+                SmsManager.RESULT_ERROR_NO_SERVICE -> "SEND FAILED [SMS]$tag → $destination (no service)"
+                SmsManager.RESULT_ERROR_NULL_PDU -> "SEND FAILED [SMS]$tag → $destination (null PDU)"
+                SmsManager.RESULT_ERROR_RADIO_OFF -> "SEND FAILED [SMS]$tag → $destination (radio off)"
+                else -> "SEND FAILED [SMS]$tag → $destination (code $resultCode)"
             }
             LogUtils.addToLog(context, msg)
         }

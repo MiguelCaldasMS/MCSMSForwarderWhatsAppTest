@@ -72,7 +72,9 @@ class SettingsActivity : AppCompatActivity() {
     private val persistSmsRunnable = Runnable { persistSmsConfig() }
     private var pendingTemplateText: String = ""
     private val persistTemplateRunnable = Runnable {
-        prefs.edit { putString("forwardTemplate", pendingTemplateText) }
+        prefs.edit {
+            putString("forwardTemplate", pendingTemplateText)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,13 +86,13 @@ class SettingsActivity : AppCompatActivity() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
 
         val contentScroll = findViewById<View>(R.id.contentScroll)
         ViewCompat.setOnApplyWindowInsetsListener(contentScroll) { v, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
-            )
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
             insets
         }
@@ -137,9 +139,7 @@ class SettingsActivity : AppCompatActivity() {
         applyTokenHelper(waAccessTokenLayout, SecureStore.has(this, SecureStore.KEY_WA_ACCESS_TOKEN), WA_TOKEN_HELP)
         waRecipient.setText(prefs.getString(WhatsAppConfig.KEY_RECIPIENT, ""))
         waTemplateName.setText(prefs.getString(WhatsAppConfig.KEY_TEMPLATE_NAME, ""))
-        waTemplateLanguage.setText(
-            prefs.getString(WhatsAppConfig.KEY_TEMPLATE_LANGUAGE, WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE)
-        )
+        waTemplateLanguage.setText(prefs.getString(WhatsAppConfig.KEY_TEMPLATE_LANGUAGE, WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE))
         val useTemplateInitial = prefs.getBoolean(WhatsAppConfig.KEY_USE_TEMPLATE, true)
         waUseTemplate.isChecked = useTemplateInitial
         updateTemplateFieldsEnabled(useTemplateInitial)
@@ -149,14 +149,22 @@ class SettingsActivity : AppCompatActivity() {
             mainHandler.removeCallbacks(persistWaRunnable)
             mainHandler.postDelayed(persistWaRunnable, PERSIST_DEBOUNCE_MS)
         }
-        waPhoneNumberId.addTextChangedListener { waPersistWatcher(it) }
-        waAccessToken.addTextChangedListener { waPersistWatcher(it) }
+        waPhoneNumberId.addTextChangedListener {
+            waPersistWatcher(it)
+        }
+        waAccessToken.addTextChangedListener {
+            waPersistWatcher(it)
+        }
         waRecipient.addTextChangedListener {
             validateRecipient(it?.toString().orEmpty())
             waPersistWatcher(it)
         }
-        waTemplateName.addTextChangedListener { waPersistWatcher(it) }
-        waTemplateLanguage.addTextChangedListener { waPersistWatcher(it) }
+        waTemplateName.addTextChangedListener {
+            waPersistWatcher(it)
+        }
+        waTemplateLanguage.addTextChangedListener {
+            waPersistWatcher(it)
+        }
         waEnabled.setOnCheckedChangeListener { _, _ ->
             mainHandler.removeCallbacks(persistWaRunnable)
             mainHandler.postDelayed(persistWaRunnable, PERSIST_DEBOUNCE_MS)
@@ -177,8 +185,12 @@ class SettingsActivity : AppCompatActivity() {
             mainHandler.removeCallbacks(persistTgRunnable)
             mainHandler.postDelayed(persistTgRunnable, PERSIST_DEBOUNCE_MS)
         }
-        tgBotToken.addTextChangedListener { tgPersistWatcher(it) }
-        tgChatId.addTextChangedListener { tgPersistWatcher(it) }
+        tgBotToken.addTextChangedListener {
+            tgPersistWatcher(it)
+        }
+        tgChatId.addTextChangedListener {
+            tgPersistWatcher(it)
+        }
         tgEnabled.setOnCheckedChangeListener { _, _ ->
             mainHandler.removeCallbacks(persistTgRunnable)
             mainHandler.postDelayed(persistTgRunnable, PERSIST_DEBOUNCE_MS)
@@ -208,8 +220,12 @@ class SettingsActivity : AppCompatActivity() {
             mainHandler.postDelayed(persistTemplateRunnable, PERSIST_DEBOUNCE_MS)
         }
 
-        SenderListStore.load(prefs).forEach { addSenderRow(it) }
-        RegexListStore.load(prefs).forEach { addRegexRow(it) }
+        SenderListStore.load(prefs).forEach {
+            addSenderRow(it)
+        }
+        RegexListStore.load(prefs).forEach {
+            addRegexRow(it)
+        }
 
         addSenderButton.setOnClickListener {
             val row = addSenderRow("")
@@ -266,12 +282,7 @@ class SettingsActivity : AppCompatActivity() {
             putString(WhatsAppConfig.KEY_RECIPIENT, waRecipient.text?.toString()?.trim().orEmpty())
             putBoolean(WhatsAppConfig.KEY_USE_TEMPLATE, waUseTemplate.isChecked)
             putString(WhatsAppConfig.KEY_TEMPLATE_NAME, waTemplateName.text?.toString()?.trim().orEmpty())
-            putString(
-                WhatsAppConfig.KEY_TEMPLATE_LANGUAGE,
-                waTemplateLanguage.text?.toString()?.trim()
-                    ?.ifEmpty { WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE }
-                    ?: WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE
-            )
+            putString(WhatsAppConfig.KEY_TEMPLATE_LANGUAGE, waTemplateLanguage.text?.toString()?.trim()?.ifEmpty { WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE } ?: WhatsAppConfig.DEFAULT_TEMPLATE_LANGUAGE)
         }
         // Only overwrite the encrypted token when the user actually typed one; an empty
         // field means "keep the saved token".
@@ -320,8 +331,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun validateRecipient(text: String) {
         waRecipientLayout.error = when {
             text.isEmpty() -> null
-            !PhoneNumberUtils.isWellFormedSmsAddress(text) ->
-                "Doesn't look like an E.164 number"
+            !PhoneNumberUtils.isWellFormedSmsAddress(text) -> "Doesn't look like an E.164 number"
             else -> null
         }
     }
@@ -329,50 +339,38 @@ class SettingsActivity : AppCompatActivity() {
     private fun validateSmsDestination(text: String) {
         smsDestinationLayout.error = when {
             text.isEmpty() -> null
-            !PhoneNumberUtils.isWellFormedSmsAddress(text) ->
-                "Doesn't look like a valid SMS address"
+            !PhoneNumberUtils.isWellFormedSmsAddress(text) -> "Doesn't look like a valid SMS address"
             else -> null
         }
     }
 
     private fun warnIfSmsDestinationIsAllowedSender() {
         val config = SmsConfig.load(prefs)
-        if (!config.enabled || config.destination.isEmpty()) return
+        if (!config.enabled || config.destination.isEmpty()) {
+            return
+        }
         val allowed = SenderListStore.load(prefs).filter { it.isNotBlank() }
-        if (allowed.isEmpty()) return
+        if (allowed.isEmpty()) {
+            return
+        }
         val iso = SenderMatcher.deviceCountryIso(this)
         if (SenderMatcher.matches(allowed, config.destination, iso)) {
-            Snackbar.make(
-                rootContainer,
-                "SMS destination is also an allowed sender. The loop guard will suppress its replies.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "SMS destination is also an allowed sender. The loop guard will suppress its replies.", Snackbar.LENGTH_LONG).show()
         }
     }
 
     private fun sendWhatsAppTestMessage() {
         val config = WhatsAppConfig.load(this)
         if (!config.hasCredentials) {
-            Snackbar.make(
-                rootContainer,
-                "Set Phone Number ID, access token, and recipient first.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "Set Phone Number ID, access token, and recipient first.", Snackbar.LENGTH_LONG).show()
             return
         }
         if (config.useTemplate && (config.templateName.isBlank() || config.templateLanguage.isBlank())) {
-            Snackbar.make(
-                rootContainer,
-                "Template name and language are required when 'Use template' is on.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "Template name and language are required when 'Use template' is on.", Snackbar.LENGTH_LONG).show()
             return
         }
         val body = "MC SMS\u2192WhatsApp Test \u2014 manual test send at ${System.currentTimeMillis()}"
-        LogUtils.addToLog(
-            this,
-            "REAL SEND [WhatsApp] \u2192 To: ${config.recipient} | Msg: $body (manual test)"
-        )
+        LogUtils.addToLog(this, "REAL SEND [WhatsApp] \u2192 To: ${config.recipient} | Msg: $body (manual test)")
         WhatsAppCloudChannel.send(this, config, body)
         Snackbar.make(rootContainer, "Sending test message\u2026 see Activity log.", Snackbar.LENGTH_SHORT).show()
     }
@@ -380,18 +378,11 @@ class SettingsActivity : AppCompatActivity() {
     private fun sendTelegramTestMessage() {
         val config = TelegramConfig.load(this)
         if (!config.hasCredentials) {
-            Snackbar.make(
-                rootContainer,
-                "Set bot token and chat ID first.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "Set bot token and chat ID first.", Snackbar.LENGTH_LONG).show()
             return
         }
         val body = "MC SMS\u2192Telegram Test \u2014 manual test send at ${System.currentTimeMillis()}"
-        LogUtils.addToLog(
-            this,
-            "REAL SEND [Telegram] \u2192 To: chat ${config.chatId} | Msg: $body (manual test)"
-        )
+        LogUtils.addToLog(this, "REAL SEND [Telegram] \u2192 To: chat ${config.chatId} | Msg: $body (manual test)")
         TelegramChannel.send(this, config, body)
         Snackbar.make(rootContainer, "Sending Telegram test\u2026 see Activity log.", Snackbar.LENGTH_SHORT).show()
     }
@@ -399,18 +390,11 @@ class SettingsActivity : AppCompatActivity() {
     private fun sendSmsTestMessage() {
         val config = SmsConfig.load(prefs)
         if (!config.hasCredentials) {
-            Snackbar.make(
-                rootContainer,
-                "Set the SMS destination number first.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            Snackbar.make(rootContainer, "Set the SMS destination number first.", Snackbar.LENGTH_LONG).show()
             return
         }
         val body = "MC SMS\u2192SMS Test \u2014 manual test send at ${System.currentTimeMillis()}"
-        LogUtils.addToLog(
-            this,
-            "REAL SEND [SMS] \u2192 To: ${config.destination} | Msg: $body (manual test)"
-        )
+        LogUtils.addToLog(this, "REAL SEND [SMS] \u2192 To: ${config.destination} | Msg: $body (manual test)")
         SmsChannel.send(this, config, body)
         Snackbar.make(rootContainer, "Sending SMS test\u2026 see Activity log.", Snackbar.LENGTH_SHORT).show()
     }
@@ -426,7 +410,9 @@ class SettingsActivity : AppCompatActivity() {
         // All rows share R.id.senderEntry, so view-state restore would copy the
         // last-focused row's text onto every row on activity recreation.
         entry.isSaveEnabled = false
-        entry.addTextChangedListener { schedulePersistSenders() }
+        entry.addTextChangedListener {
+            schedulePersistSenders()
+        }
 
         delete.setOnClickListener {
             sendersContainer.removeView(row)
@@ -452,8 +438,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun persistSenders() {
         val list = (0 until sendersContainer.childCount).map { i ->
-            sendersContainer.getChildAt(i)
-                .findViewById<EditText>(R.id.senderEntry).text?.toString().orEmpty()
+            sendersContainer.getChildAt(i).findViewById<EditText>(R.id.senderEntry).text?.toString().orEmpty()
         }
         SenderListStore.save(prefs, list)
     }
@@ -494,8 +479,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun validateRegex(layout: TextInputLayout, pattern: String) {
         layout.error = when {
             pattern.isBlank() -> null
-            else -> runCatching { Regex(pattern) }.exceptionOrNull()
-                ?.let { "Invalid regex: ${it.message}" }
+            else -> runCatching { Regex(pattern) }.exceptionOrNull()?.let { "Invalid regex: ${it.message}" }
         }
     }
 
@@ -506,8 +490,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun persistRegexes() {
         val list = (0 until regexesContainer.childCount).map { i ->
-            regexesContainer.getChildAt(i)
-                .findViewById<EditText>(R.id.regexEntry).text?.toString().orEmpty()
+            regexesContainer.getChildAt(i).findViewById<EditText>(R.id.regexEntry).text?.toString().orEmpty()
         }
         RegexListStore.save(prefs, list)
     }
@@ -515,7 +498,9 @@ class SettingsActivity : AppCompatActivity() {
     private fun moveRow(container: LinearLayout, row: View, delta: Int) {
         val index = container.indexOfChild(row)
         val target = index + delta
-        if (index < 0 || target < 0 || target >= container.childCount) return
+        if (index < 0 || target < 0 || target >= container.childCount) {
+            return
+        }
         container.removeViewAt(index)
         container.addView(row, target)
     }
