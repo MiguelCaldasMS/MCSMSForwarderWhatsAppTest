@@ -35,16 +35,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.miguelcaldas.mcsmsforwardermultichannel.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegexTesterScreen(onBack: () -> Unit, viewModel: RegexTesterViewModel = viewModel()) {
+fun RegexTesterScreen(
+    filtersViewModel: FiltersViewModel,
+    onBack: () -> Unit,
+    viewModel: RegexTesterViewModel = viewModel(),
+) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    val senders by filtersViewModel.senders.collectAsStateWithLifecycle()
+    val template by filtersViewModel.template.collectAsStateWithLifecycle()
 
     var sender by rememberSaveable { mutableStateOf("") }
     var message by rememberSaveable { mutableStateOf("") }
@@ -103,7 +111,7 @@ fun RegexTesterScreen(onBack: () -> Unit, viewModel: RegexTesterViewModel = view
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = {
-                        val result = viewModel.savePattern(pattern)
+                        val result = filtersViewModel.addPattern(pattern)
                         scope.launch {
                             snackbarHostState.showSnackbar(result)
                         }
@@ -114,7 +122,7 @@ fun RegexTesterScreen(onBack: () -> Unit, viewModel: RegexTesterViewModel = view
                 }
                 Button(
                     onClick = {
-                        outcome = viewModel.runTest(sender, message, pattern)
+                        outcome = viewModel.runTest(sender, message, pattern, senders, template)
                     },
                     modifier = Modifier.weight(1f),
                 ) {

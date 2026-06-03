@@ -5,8 +5,6 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import com.miguelcaldas.mcsmsforwardermultichannel.util.ForwardTemplate
 import com.miguelcaldas.mcsmsforwardermultichannel.util.LogUtils
-import com.miguelcaldas.mcsmsforwardermultichannel.util.RegexListStore
-import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderListStore
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SenderMatcher
 import com.miguelcaldas.mcsmsforwardermultichannel.util.SmsConfig
 import com.miguelcaldas.mcsmsforwardermultichannel.util.TelegramConfig
@@ -23,7 +21,15 @@ class RegexTesterViewModel(application: Application) : AndroidViewModel(applicat
 
     // Dry-run mirror of SmsReceiver's pipeline. Keep this in lockstep with the live receiver:
     // a channel only fires when it is *operational* (toggle on AND credentials complete).
-    fun runTest(senderRaw: String, messageRaw: String, patternRaw: String): TestOutcome {
+    // The allowed senders and forwarding template are passed in from the Filters screen's
+    // current (possibly unsaved) draft, so the test reflects what's on screen, not what's saved.
+    fun runTest(
+        senderRaw: String,
+        messageRaw: String,
+        patternRaw: String,
+        allowedSendersRaw: List<String>,
+        template: String,
+    ): TestOutcome {
         val context = getApplication<Application>()
         val sender = senderRaw.trim()
         val message = messageRaw
@@ -36,7 +42,7 @@ class RegexTesterViewModel(application: Application) : AndroidViewModel(applicat
             return TestOutcome("Invalid regex: ${it.message}", Tone.ERROR)
         }
 
-        val allowedSenders = SenderListStore.load(prefs).filter { it.isNotBlank() }
+        val allowedSenders = allowedSendersRaw.filter { it.isNotBlank() }
         val iso = SenderMatcher.deviceCountryIso(context)
         val senderAllowed = allowedSenders.isNotEmpty() && SenderMatcher.matches(allowedSenders, sender, iso)
         val normalized = TextNormalizer.normalizeForMatching(message)
@@ -57,7 +63,6 @@ class RegexTesterViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
 
-        val template = prefs.getString("forwardTemplate", "").orEmpty()
         val outgoingBody = if (template.isEmpty()) message else ForwardTemplate.apply(template, sender, System.currentTimeMillis(), message)
 
         val pipelineWouldSend = senderAllowed && patternMatches && operationalChannels.isNotEmpty()
@@ -79,22 +84,5 @@ class RegexTesterViewModel(application: Application) : AndroidViewModel(applicat
         }
 
         return TestOutcome(builder.toString(), if (pipelineWouldSend) Tone.POSITIVE else Tone.NEUTRAL)
-    }
-
-    fun savePattern(pattern: String): String {
-        if (pattern.isBlank()) {
-            return "Enter a pattern first"
-        }
-        val invalid = runCatching { Regex(pattern) }.exceptionOrNull()
-        if (invalid != null) {
-            return "Invalid regex: ${invalid.message}"
-        }
-        val current = RegexListStore.load(prefs).toMutableList()
-        if (current.any { it == pattern }) {
-            return "Pattern already saved"
-        }
-        current.add(pattern)
-        RegexListStore.save(prefs, current)
-        return "Pattern saved"
     }
 }

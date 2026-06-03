@@ -23,12 +23,8 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
     private val _template = MutableStateFlow(prefs.getString(KEY_TEMPLATE, "").orEmpty())
     val template: StateFlow<String> = _template.asStateFlow()
 
-    fun refresh() {
-        _senders.value = SenderListStore.load(prefs)
-        _rules.value = RegexListStore.load(prefs)
-        _template.value = prefs.getString(KEY_TEMPLATE, "").orEmpty()
-    }
-
+    // Edits mutate in-memory draft state only; nothing is persisted until save() is called,
+    // mirroring the explicit Save button on the channel detail screens.
     fun addSender(raw: String): String? {
         val value = raw.trim()
         if (value.isEmpty()) {
@@ -37,16 +33,12 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
         if (_senders.value.any { it.equals(value, ignoreCase = true) }) {
             return "Already in the list"
         }
-        val updated = _senders.value + value
-        _senders.value = updated
-        SenderListStore.save(prefs, updated)
+        _senders.value = _senders.value + value
         return null
     }
 
     fun removeSender(value: String) {
-        val updated = _senders.value.filterNot { it == value }
-        _senders.value = updated
-        SenderListStore.save(prefs, updated)
+        _senders.value = _senders.value.filterNot { it == value }
     }
 
     fun addRule() {
@@ -59,7 +51,6 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
             // RegexListStore does not trim — leading/trailing whitespace can be part of a pattern.
             updated[index] = value
             _rules.value = updated
-            RegexListStore.save(prefs, updated)
         }
     }
 
@@ -68,14 +59,35 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
         if (index in updated.indices) {
             updated.removeAt(index)
             _rules.value = updated
-            RegexListStore.save(prefs, updated)
         }
     }
 
     fun setTemplate(value: String) {
         _template.value = value
+    }
+
+    // Adds a validated pattern to the draft rules (used by the regex tester's "Save pattern").
+    // Like every other edit here it stays in the draft until save() is called.
+    fun addPattern(pattern: String): String {
+        if (pattern.isBlank()) {
+            return "Enter a pattern first"
+        }
+        val invalid = runCatching { Regex(pattern) }.exceptionOrNull()
+        if (invalid != null) {
+            return "Invalid regex: ${invalid.message}"
+        }
+        if (_rules.value.any { it == pattern }) {
+            return "Pattern already added"
+        }
+        _rules.value = _rules.value + pattern
+        return "Pattern added — Save to keep it"
+    }
+
+    fun save() {
+        SenderListStore.save(prefs, _senders.value)
+        RegexListStore.save(prefs, _rules.value)
         prefs.edit {
-            putString(KEY_TEMPLATE, value)
+            putString(KEY_TEMPLATE, _template.value)
         }
     }
 

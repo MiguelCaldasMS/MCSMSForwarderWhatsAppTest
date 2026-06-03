@@ -8,8 +8,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -17,11 +19,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.channels.ChannelDetailScreen
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.channels.ChannelType
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.channels.ChannelsScreen
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.filters.FiltersScreen
+import com.miguelcaldas.mcsmsforwardermultichannel.ui.filters.FiltersViewModel
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.filters.RegexTesterScreen
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.log.LogScreen
 import com.miguelcaldas.mcsmsforwardermultichannel.ui.navigation.TopLevelDestination
@@ -101,22 +105,30 @@ fun AppRoot() {
             composable(TopLevelDestination.Activity.route) {
                 LogScreen()
             }
-            composable("filters") {
-                FiltersScreen(
-                    onBack = {
-                        navController.popBackStack()
-                    },
-                    onOpenTester = {
-                        navController.navigate("regex_tester")
-                    },
-                )
-            }
-            composable("regex_tester") {
-                RegexTesterScreen(
-                    onBack = {
-                        navController.popBackStack()
-                    },
-                )
+            navigation(startDestination = "filters", route = "filters_graph") {
+                composable("filters") { entry ->
+                    val parentEntry = remember(entry) { navController.getBackStackEntry("filters_graph") }
+                    val filtersViewModel: FiltersViewModel = viewModel(parentEntry)
+                    FiltersScreen(
+                        viewModel = filtersViewModel,
+                        onBack = {
+                            navController.popBackStack()
+                        },
+                        onOpenTester = {
+                            navController.navigate("regex_tester")
+                        },
+                    )
+                }
+                composable("regex_tester") { entry ->
+                    val parentEntry = remember(entry) { navController.getBackStackEntry("filters_graph") }
+                    val filtersViewModel: FiltersViewModel = viewModel(parentEntry)
+                    RegexTesterScreen(
+                        filtersViewModel = filtersViewModel,
+                        onBack = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
             }
         }
     }

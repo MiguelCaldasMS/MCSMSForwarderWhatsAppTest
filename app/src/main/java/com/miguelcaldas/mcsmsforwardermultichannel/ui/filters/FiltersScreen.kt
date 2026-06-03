@@ -43,26 +43,19 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.miguelcaldas.mcsmsforwardermultichannel.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FiltersScreen(onBack: () -> Unit, onOpenTester: () -> Unit, viewModel: FiltersViewModel = viewModel()) {
+fun FiltersScreen(viewModel: FiltersViewModel, onBack: () -> Unit, onOpenTester: () -> Unit) {
     val senders by viewModel.senders.collectAsStateWithLifecycle()
     val rules by viewModel.rules.collectAsStateWithLifecycle()
     val template by viewModel.template.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
-    LifecycleResumeEffect(Unit) {
-        viewModel.refresh()
-        onPauseOrDispose { }
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -123,6 +116,18 @@ fun FiltersScreen(onBack: () -> Unit, onOpenTester: () -> Unit, viewModel: Filte
                     viewModel.setTemplate(value)
                 },
             )
+
+            Button(
+                onClick = {
+                    viewModel.save()
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Filters saved")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Save")
+            }
         }
     }
 }
