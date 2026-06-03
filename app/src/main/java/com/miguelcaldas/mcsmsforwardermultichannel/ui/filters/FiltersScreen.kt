@@ -180,7 +180,7 @@ private fun SendersCard(senders: List<String>, onAdd: (String) -> Boolean, onRem
                             onClick = {
                                 onRemove(sender)
                             },
-                            label = { Text(sender) },
+                            label = { Text(sender, style = MaterialTheme.typography.bodyLarge) },
                             trailingIcon = {
                                 Icon(painterResource(R.drawable.ic_close_24), contentDescription = "Remove $sender")
                             },
@@ -239,7 +239,7 @@ private fun RulesCard(rules: List<String>, onAdd: (String) -> Boolean, onRemove:
                             onClick = {
                                 onRemove(rule)
                             },
-                            label = { Text(rule) },
+                            label = { Text(rule, style = MaterialTheme.typography.bodyLarge) },
                             trailingIcon = {
                                 Icon(painterResource(R.drawable.ic_close_24), contentDescription = "Remove $rule")
                             },
