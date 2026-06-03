@@ -1,6 +1,7 @@
 package com.miguelcaldas.mcsmsforwardermultichannel
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableStringBuilder
@@ -24,9 +25,16 @@ class LogActivity : AppCompatActivity() {
     private lateinit var logText: TextView
     private lateinit var rootContainer: View
     private lateinit var filterChips: ChipGroup
+    private lateinit var prefs: SharedPreferences
     private var currentFilter: Filter = Filter.All
 
     private enum class Filter { All, SendOk, SendFailed, FakeSend, Boot }
+
+    // Refresh the log view live when a new entry is written while this screen is visible.
+    private val logChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == LOGS_KEY) refreshLogs()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -38,6 +46,8 @@ class LogActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
+
+        prefs = getSharedPreferences("mc_sms_fwd_wa", MODE_PRIVATE)
 
         val contentScroll = findViewById<View>(R.id.contentScroll)
         ViewCompat.setOnApplyWindowInsetsListener(contentScroll) { v, insets ->
@@ -71,6 +81,12 @@ class LogActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshLogs()
+        prefs.registerOnSharedPreferenceChangeListener(logChangeListener)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        prefs.unregisterOnSharedPreferenceChangeListener(logChangeListener)
     }
 
     private fun matchesFilter(entry: String): Boolean = when (currentFilter) {
@@ -126,5 +142,9 @@ class LogActivity : AppCompatActivity() {
             putExtra(Intent.EXTRA_TEXT, payload)
         }
         startActivity(Intent.createChooser(send, "Share log"))
+    }
+
+    private companion object {
+        const val LOGS_KEY = "logs_v2"
     }
 }
