@@ -1,0 +1,78 @@
+package com.miguelcaldas.mcsmsforwardermultichannel.ui.log
+
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.miguelcaldas.mcsmsforwardermultichannel.util.LogUtils
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+enum class LogFilter { All, SendOk, SendFailed, FakeSend, Boot }
+
+/**
+ * Holds the activity-log screen state. Reads entries through [LogUtils] (backed by
+ * SharedPreferences) and refreshes live while a new entry is written, so the list
+ * survives configuration changes without re-reading on every recomposition.
+ */
+class LogViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val prefs: SharedPreferences = application.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private val _filter = MutableStateFlow(LogFilter.All)
+    val filter: StateFlow<LogFilter> = _filter.asStateFlow()
+
+    private val _logs = MutableStateFlow<List<String>>(emptyList())
+    val logs: StateFlow<List<String>> = _logs.asStateFlow()
+
+    // Refresh the list live when a new entry is written elsewhere (SmsReceiver, channels, …).
+    private val changeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == null || key == LOGS_KEY) {
+            refresh()
+        }
+    }
+
+    init {
+        prefs.registerOnSharedPreferenceChangeListener(changeListener)
+        refresh()
+    }
+
+    fun setFilter(filter: LogFilter) {
+        _filter.value = filter
+        refresh()
+    }
+
+    fun clear() {
+        LogUtils.clearLogs(getApplication())
+        refresh()
+    }
+
+    /** Current filtered entries, most recent first. Used by the share action. */
+    fun visibleLogs(): List<String> = _logs.value
+
+    private fun refresh() {
+        viewModelScope.launch {
+            _logs.value = LogUtils.getLogs(getApplication()).filter { matchesFilter(it, _filter.value) }
+        }
+    }
+
+    private fun matchesFilter(entry: String, filter: LogFilter): Boolean = when (filter) {
+        LogFilter.All -> true
+        LogFilter.SendOk -> entry.contains("SEND OK") || entry.contains("REAL SEND \u2192")
+        LogFilter.SendFailed -> entry.contains("FAILED")
+        LogFilter.FakeSend -> entry.contains("FAKE SEND")
+        LogFilter.Boot -> entry.contains("BOOT \u2192") || entry.contains("TILE \u2192")
+    }
+
+    override fun onCleared() {
+        prefs.unregisterOnSharedPreferenceChangeListener(changeListener)
+    }
+
+    private companion object {
+        const val PREFS = "mc_sms_fwd_wa"
+        const val LOGS_KEY = "logs_v2"
+    }
+}
