@@ -50,6 +50,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var masterSwitchSubtitle: TextView
     private lateinit var readinessContainer: LinearLayout
 
+    // Refresh the stat views live when a forward is recorded while this screen is visible.
+    private val statsChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key in STAT_KEYS) refreshStats()
+        }
+
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.RECEIVE_SMS,
         Manifest.permission.SEND_SMS,
@@ -128,6 +134,12 @@ class MainActivity : AppCompatActivity() {
         updateMasterSubtitle(masterSwitch.isChecked)
         refreshStats()
         refreshReadiness()
+        prefs.registerOnSharedPreferenceChangeListener(statsChangeListener)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        prefs.unregisterOnSharedPreferenceChangeListener(statsChangeListener)
     }
 
     private fun updateMasterSubtitle(enabled: Boolean) {
@@ -342,5 +354,9 @@ class MainActivity : AppCompatActivity() {
                 "package:$packageName".toUri()
             )
         )
+    }
+
+    private companion object {
+        val STAT_KEYS = setOf("fwd_count", "fwd_first_ts", "fwd_last_ts")
     }
 }
