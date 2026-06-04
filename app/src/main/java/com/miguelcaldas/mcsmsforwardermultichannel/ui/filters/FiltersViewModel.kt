@@ -34,41 +34,45 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
     val template: StateFlow<String> = _template.asStateFlow()
 
     // Edits mutate in-memory draft state only; nothing is persisted until save() is called,
-    // mirroring the explicit Save button on the channel detail screens.
-    fun addSender(raw: String): String? {
-        val value = raw.trim()
-        if (value.isEmpty()) {
-            return "Enter a sender first"
+    // mirroring the explicit Save button on the channel detail screens. Senders and rules are
+    // edited in place as a list of free-text rows: each row is an editable field plus a delete
+    // button. Order is not significant, so rows are addressed by index and blank rows are simply
+    // dropped on save() (and ignored by the live pipeline). Duplicate/invalid-pattern checks are
+    // intentionally not enforced while typing — they would fight the user mid-edit.
+    fun updateSender(index: Int, value: String) {
+        // Newlines would corrupt the newline-delimited store, so collapse them away.
+        val sanitized = value.replace('\n', ' ').replace('\r', ' ')
+        _senders.value = _senders.value.toMutableList().also {
+            if (index in it.indices) {
+                it[index] = sanitized
+            }
         }
-        if (_senders.value.any { it.equals(value, ignoreCase = true) }) {
-            return "Already in the list"
-        }
-        _senders.value = _senders.value + value
-        return null
     }
 
-    fun removeSender(value: String) {
-        _senders.value = _senders.value.filterNot { it == value }
+    fun addSender() {
+        _senders.value = _senders.value + ""
     }
 
-    fun addRule(raw: String): String? {
-        // RegexListStore does not trim — leading/trailing whitespace can be part of a pattern,
-        // so only an entirely empty entry is rejected.
-        if (raw.isEmpty()) {
-            return "Enter a rule first"
-        }
-        if (_rules.value.any { it == raw }) {
-            return "Already in the list"
-        }
-        if (runCatching { Regex(raw) }.isFailure) {
-            return "Not a valid pattern"
-        }
-        _rules.value = _rules.value + raw
-        return null
+    fun removeSenderAt(index: Int) {
+        _senders.value = _senders.value.filterIndexed { i, _ -> i != index }
     }
 
-    fun removeRule(value: String) {
-        _rules.value = _rules.value.filterNot { it == value }
+    fun updateRule(index: Int, value: String) {
+        // Rules are newline-delimited in storage too, so a single row can't contain a newline.
+        val sanitized = value.replace('\n', ' ').replace('\r', ' ')
+        _rules.value = _rules.value.toMutableList().also {
+            if (index in it.indices) {
+                it[index] = sanitized
+            }
+        }
+    }
+
+    fun addRule() {
+        _rules.value = _rules.value + ""
+    }
+
+    fun removeRuleAt(index: Int) {
+        _rules.value = _rules.value.filterIndexed { i, _ -> i != index }
     }
 
     fun setTemplate(value: String) {
@@ -168,6 +172,18 @@ class FiltersViewModel(application: Application) : AndroidViewModel(application)
         prefs.edit {
             putString(KEY_TEMPLATE, _template.value)
         }
+    }
+
+    // Non-blocking, save-time advisory shown after a successful save. Blank rows are dropped on
+    // save (so they're never reported), but a leftover invalid regex would be silently skipped by
+    // the live pipeline, which is easy to miss — surface it here so the user can fix it.
+    fun saveWarning(): String? {
+        val rules = _rules.value.filter { it.isNotBlank() }
+        val invalid = rules.filter { runCatching { Regex(it) }.isFailure }
+        if (invalid.isNotEmpty()) {
+            return "Saved, but ${invalid.size} rule(s) are not valid patterns and will be ignored."
+        }
+        return null
     }
 
     private companion object {

@@ -11,7 +11,10 @@ No test suite or linter is configured.
 
 ## Architecture
 
-Single-module Android app (`:app`), Kotlin. The UI currently uses XML layouts with Material 3.
+Single-module Android app (`:app`), Kotlin. The UI is **Jetpack Compose** (Material 3): a single
+`MainActivity : ComponentActivity` calls `setContent { MCSmsForwarderTheme { AppRoot() } }`, and
+`AppRoot` hosts a `NavController` that routes between screens (status, channels, filters, log).
+Each screen has an `AndroidViewModel` exposing `StateFlow` draft state.
 
 **Pipeline** (`SmsReceiver`): incoming SMS → master kill-switch (`prefs.getBoolean("master_enabled", true)`,
 default ON) → bail if **no channel is operational** (each channel: enabled toggle on AND credentials
@@ -41,10 +44,10 @@ stats** — `SmsReceiver` owns the single increment per matched SMS.
 
 **WhatsApp Cloud channel** (`util/WhatsAppCloudChannel.kt`): `object` with a single-thread daemon
 `Executor` named `wa-sender`. The message template is **fixed in code** (constants `TEMPLATE_NAME`,
-`TEMPLATE_LANGUAGE`, `TEMPLATE_HAS_BODY_PARAM`) — it is intentionally not selectable in the config
-or the UI. It currently points at the prebuilt `hello_world` template, which has no variables, so
-`TEMPLATE_HAS_BODY_PARAM=false` and the forwarded SMS body is **not** sent yet; when an approved
-template with a `{{1}}` body parameter is ready, change the constants to include the body. `send`
+`TEMPLATE_LANGUAGE`, `TEMPLATE_TITLE`) — it is intentionally not selectable in the config
+or the UI. It points at the approved `titled_forwarded_sms` template, whose body has two `{{n}}`
+parameters: `{{1}}` is bound to the fixed user `TEMPLATE_USER` (`"Miguel"`) and `{{2}}` to the
+forwarded SMS body. `send`
 builds the template JSON via `buildPayload`, strips the leading `+` from the recipient, opens
 `HttpURLConnection` to
 `https://graph.facebook.com/v21.0/{phoneNumberId}/messages`, writes the body with
@@ -65,9 +68,10 @@ dynamically-registered `BroadcastReceiver` (action `…SMS_SENT_RESULT`, `RECEIV
 logs the modem's asynchronous per-segment result (`SEND OK [SMS]`, `no service`, `radio off`, …).
 Needs the `SEND_SMS` permission. The only "credential" is the destination number; there is no token.
 
-**Master switch**: `MasterSwitchTileService` (Quick Settings tile) and the main-screen
-`MaterialSwitch` both write the same `master_enabled` pref; `MainActivity.onResume` re-syncs
-the switch in case the tile flipped it while paused.
+**Master switch**: `MasterSwitchTileService` (Quick Settings tile) and the Status screen's Compose
+`Switch` both write the same `master_enabled` pref. `StatusViewModel` registers an
+`OnSharedPreferenceChangeListener`, so flipping the tile reactively updates the on-screen switch
+(no `onResume` re-sync needed).
 
 **Boot**: `BootReceiver` exists purely to make the framework load the package on
 `BOOT_COMPLETED` (no real work; just a log line) so the manifest SMS receiver is warm before the
@@ -87,11 +91,11 @@ separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via `SecureStor
 calling `SecureStore.read(context, …)`, so `WhatsAppConfig.load`/`TelegramConfig.load` take a
 `Context` (not a `SharedPreferences`).
 
-**Activities** are currently plain `AppCompatActivity` subclasses. Settings fields are
-**debounced-saved** (~150 ms after the last keystroke
-via `Handler.postDelayed`) and force-flushed in `onPause()` via `flushPendingWrites()`. Dynamic
-rows that share an `EditText` id (e.g. `R.id.senderEntry`) set `isSaveEnabled = false` so view-
-state restore doesn't copy the last-focused row's text onto every row after recreation.
+**Screens** are Compose, each backed by an `AndroidViewModel`. Edits mutate in-memory draft
+`StateFlow`s and are persisted only when the user taps the screen's explicit **Save** button (no
+debounced auto-save). On the Filters screen the allowed senders and message-format rules are each
+rendered as a list of editable `OutlinedTextField` rows with a per-row delete button (order is not
+significant); blank rows are dropped on save and ignored by the live pipeline.
 
 ## Conventions
 
@@ -100,8 +104,8 @@ state restore doesn't copy the last-focused row's text onto every row after recr
   `SenderListStore`, `RegexListStore`, `SenderMatcher`, `TextNormalizer`, `ForwardTemplate`,
   `ForwardStatsStore`, `WhatsAppConfig`, `WhatsAppCloudChannel`, `TelegramConfig`,
   `TelegramChannel`, `SmsConfig`, `SmsChannel`, `SecureStore`, `LogUtils`.
-- **Edge-to-edge** + insets handling is repeated in every activity's `onCreate` using
-  `enableEdgeToEdge()` and `ViewCompat.setOnApplyWindowInsetsListener`.
+- **Edge-to-edge** is enabled once in `MainActivity.onCreate` via `enableEdgeToEdge()`; Compose
+  `Scaffold` + window-inset padding handle the rest per screen.
 - **Regex matching** uses `TextNormalizer.normalizeForMatching` (NFD + strip combining marks +
   lowercase) so patterns can be written accent-free and case-free. Invalid regexes are
   silently treated as non-matches.

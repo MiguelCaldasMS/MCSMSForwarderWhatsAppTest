@@ -24,7 +24,7 @@ The UI is a single-activity Jetpack Compose app with a Material 3 bottom-navigat
 
 | Channel detail (WhatsApp) | Filters |
 | --- | --- |
-| ![WhatsApp detail form: enable switch, WhatsApp Phone Number ID, write-only Access token, recipient with a country-code hint, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders and regex rules as removable chips, a forwarding template, and an inline test card](docs/screenshots/filters.png) |
+| ![WhatsApp detail form: enable switch, WhatsApp Phone Number ID, write-only Access token, recipient with a country-code hint, Send test / Save](docs/screenshots/channel-whatsapp.png) | ![Filters screen: allowed senders and regex rules as editable rows each with a delete button, a forwarding template, and an inline test card](docs/screenshots/filters.png) |
 
 ## What it does
 
@@ -36,7 +36,7 @@ The UI is a single-activity Jetpack Compose app with a Material 3 bottom-navigat
 - Normalizes the body (NFD + strip combining marks + lowercase) and matches it against **any** of the configured regex patterns.
 - Optionally re-formats the outgoing text with a template (`%s` = source, `%t` = time, `%m` = original message).
 - Sends the result through **every operational channel** (toggle on AND credentials present):
-  - **WhatsApp** — `POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a `Bearer` token, as an **approved template** message. The template name and language are fixed in code (currently the prebuilt `hello_world`, which has no variables, so the SMS body isn't sent yet); swap in an approved template with a body parameter to forward the actual text.
+  - **WhatsApp** — `POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a `Bearer` token, as an **approved template** message. The template name and language are fixed in code (the approved `titled_forwarded_sms` template); its body has two parameters — `{{1}}` is a fixed user name and `{{2}}` is the forwarded SMS body.
   - **Telegram** — `POST https://api.telegram.org/bot{TOKEN}/sendMessage` with `chat_id` + `text` (web previews disabled).
   - **SMS** — `SmsManager.sendMultipartTextMessage` to the configured destination number; per-segment modem results are surfaced in the activity log.
 
@@ -75,7 +75,7 @@ The quickest and cheapest path is to use the **test phone number** that Meta pro
    2. *Users → System users → Add* — give it a name (e.g. `sms-forwarder`) and role **Admin**.
    3. With the new system user selected, click **Add assets** → **Apps** → pick your app → toggle **Full control**. Repeat **Add assets** → **WhatsApp accounts** → pick your WABA → toggle **Full control**.
    4. Click **Generate new token** → pick your app → **Token expiration: Never** → select scopes `whatsapp_business_messaging` and `whatsapp_business_management` → **Generate token** → copy it once (you cannot view it again).
-6. In this app, open the **Channels** tab and tap **WhatsApp**: paste **WhatsApp Phone Number ID**, **Access token**, and **WhatsApp Recipient Phone Number** (full number with country code, no `+`, e.g. `351912345678`). The message template is fixed in code — it ships pointing at the prebuilt `hello_world` template, so **Send test** delivers a template message with no app content. When your own template is approved by WhatsApp, change the constants in `WhatsAppCloudChannel` to send the SMS body.
+6. In this app, open the **Channels** tab and tap **WhatsApp**: paste **WhatsApp Phone Number ID**, **Access token**, and **WhatsApp Recipient Phone Number** (full number with country code, no `+`, e.g. `351912345678`). The message template is fixed in code — it points at the approved `titled_forwarded_sms` template, whose body has two parameters (a fixed user name and the forwarded SMS body), so **Send test** delivers the templated message with your content.
 
 The **Access token** field is write-only: once saved it pre-fills with a bullet mask standing in for the stored token (never the token itself) — leave the mask untouched to keep it, type over it to replace it, or clear the field to delete it.
 
@@ -83,7 +83,7 @@ Notes:
 - The test number itself is permanent for the life of the WABA — do **not** delete it from *API Setup*.
 - Recipient numbers must be **opted-in** (the 6-digit confirmation flow above does that). Adding new ones requires the same confirmation.
 - Free tier limit is intentionally 5 destinations and 250 conversations/day — plenty for personal SMS forwarding.
-- Outside the 24-hour customer service window, only **approved templates** are allowed. The `hello_world` template ships pre-approved for every WABA.
+- Outside the 24-hour customer service window, only **approved templates** are allowed. The `titled_forwarded_sms` template must be approved on your WABA before sends will succeed.
 
 ### Production phone number (optional)
 
@@ -128,8 +128,8 @@ Filters are shared by every channel and live on the **Channels** tab under **Sen
 
 **Filtering (shared by all channels)**
 
-- **Allowed senders** — removable chips; phone numbers or alphanumeric IDs. Type one and tap **Add**.
-- **Message format rules** — removable chips; regex patterns, a message is forwarded if **any** pattern matches. Type one and tap **Add**. With no rules, nothing is forwarded.
+- **Allowed senders** — editable rows; phone numbers or alphanumeric IDs. Tap **Add sender** to append a row, type into it, and use the row's delete button to remove it.
+- **Message format rules** — editable rows; regex patterns, a message is forwarded if **any** pattern matches. Tap **Add rule** to append a row. With no rules, nothing is forwarded.
 - **Forwarding template** (optional) — `%s`, `%t`, `%m` tokens.
 - **Test a message** — an inline card that dry-runs a sample sender + message against the filters as currently shown on screen (no need to save first); the message starts blank and the sender defaults to the first phone in the list, both remembered from the last test. Nothing is sent.
 
@@ -141,7 +141,7 @@ Filters are shared by every channel and live on the **Channels** tab under **Sen
 - **WhatsApp Recipient Phone Number** — destination number with country code and no `+` (e.g. `351912345678`).
 - **Send test** button — POSTs a synthetic message to your recipient using your current WhatsApp settings.
 
-The message template is **fixed in code** (`WhatsAppCloudChannel`), not chosen in the UI. It currently uses the prebuilt `hello_world` template (no variables), so forwarded SMS content isn't sent yet; swap the constants for an approved template with a body parameter when ready.
+The message template is **fixed in code** (`WhatsAppCloudChannel`), not chosen in the UI. It uses the approved `titled_forwarded_sms` template, whose body has two parameters: a fixed user name (`{{1}}`) and the forwarded SMS body (`{{2}}`).
 
 **Telegram Bot API** (Channels tab → Telegram)
 

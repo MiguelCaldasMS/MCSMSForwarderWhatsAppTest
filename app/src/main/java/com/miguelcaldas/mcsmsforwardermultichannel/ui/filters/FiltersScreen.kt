@@ -2,7 +2,6 @@ package com.miguelcaldas.mcsmsforwardermultichannel.ui.filters
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,15 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +23,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,33 +82,27 @@ fun FiltersScreen(onBack: () -> Unit, viewModel: FiltersViewModel = viewModel())
         ) {
             SendersCard(
                 senders = senders,
-                onAdd = { raw ->
-                    val error = viewModel.addSender(raw)
-                    if (error != null) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(error)
-                        }
-                    }
-                    error == null
+                onUpdate = { index, value ->
+                    viewModel.updateSender(index, value)
                 },
-                onRemove = { value ->
-                    viewModel.removeSender(value)
+                onAdd = {
+                    viewModel.addSender()
+                },
+                onRemove = { index ->
+                    viewModel.removeSenderAt(index)
                 },
             )
 
             RulesCard(
                 rules = rules,
-                onAdd = { raw ->
-                    val error = viewModel.addRule(raw)
-                    if (error != null) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(error)
-                        }
-                    }
-                    error == null
+                onUpdate = { index, value ->
+                    viewModel.updateRule(index, value)
                 },
-                onRemove = { value ->
-                    viewModel.removeRule(value)
+                onAdd = {
+                    viewModel.addRule()
+                },
+                onRemove = { index ->
+                    viewModel.removeRuleAt(index)
                 },
             )
 
@@ -136,8 +124,9 @@ fun FiltersScreen(onBack: () -> Unit, viewModel: FiltersViewModel = viewModel())
             Button(
                 onClick = {
                     viewModel.save()
+                    val warning = viewModel.saveWarning()
                     scope.launch {
-                        snackbarHostState.showSnackbar("Filters saved")
+                        snackbarHostState.showSnackbar(warning ?: "Filters saved")
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -150,15 +139,12 @@ fun FiltersScreen(onBack: () -> Unit, viewModel: FiltersViewModel = viewModel())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SendersCard(senders: List<String>, onAdd: (String) -> Boolean, onRemove: (String) -> Unit) {
-    var newSender by rememberSaveable { mutableStateOf("") }
-
-    fun commit() {
-        if (onAdd(newSender)) {
-            newSender = ""
-        }
-    }
-
+private fun SendersCard(
+    senders: List<String>,
+    onUpdate: (Int, String) -> Unit,
+    onAdd: () -> Unit,
+    onRemove: (Int) -> Unit,
+) {
     Card {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Allowed senders", style = MaterialTheme.typography.titleMedium)
@@ -173,35 +159,17 @@ private fun SendersCard(senders: List<String>, onAdd: (String) -> Boolean, onRem
                     color = MaterialTheme.colorScheme.error,
                 )
             } else {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    senders.forEach { sender ->
-                        InputChip(
-                            selected = false,
-                            onClick = {
-                                onRemove(sender)
-                            },
-                            label = { Text(sender, style = MaterialTheme.typography.bodyLarge) },
-                            trailingIcon = {
-                                Icon(painterResource(R.drawable.ic_close_24), contentDescription = "Remove $sender")
-                            },
-                        )
-                    }
+                senders.forEachIndexed { index, sender ->
+                    EntryRow(
+                        value = sender,
+                        label = "Sender",
+                        onValueChange = { onUpdate(index, it) },
+                        onRemove = { onRemove(index) },
+                    )
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = newSender,
-                    onValueChange = { newSender = it },
-                    label = { Text("Add sender") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { commit() }),
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { commit() }) {
-                    Text("Add")
-                }
+            Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+                Text("Add sender")
             }
         }
     }
@@ -209,15 +177,12 @@ private fun SendersCard(senders: List<String>, onAdd: (String) -> Boolean, onRem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RulesCard(rules: List<String>, onAdd: (String) -> Boolean, onRemove: (String) -> Unit) {
-    var newRule by rememberSaveable { mutableStateOf("") }
-
-    fun commit() {
-        if (onAdd(newRule)) {
-            newRule = ""
-        }
-    }
-
+private fun RulesCard(
+    rules: List<String>,
+    onUpdate: (Int, String) -> Unit,
+    onAdd: () -> Unit,
+    onRemove: (Int) -> Unit,
+) {
     Card {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Message format rules", style = MaterialTheme.typography.titleMedium)
@@ -232,36 +197,40 @@ private fun RulesCard(rules: List<String>, onAdd: (String) -> Boolean, onRemove:
                     color = MaterialTheme.colorScheme.error,
                 )
             } else {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    rules.forEach { rule ->
-                        InputChip(
-                            selected = false,
-                            onClick = {
-                                onRemove(rule)
-                            },
-                            label = { Text(rule, style = MaterialTheme.typography.bodyLarge) },
-                            trailingIcon = {
-                                Icon(painterResource(R.drawable.ic_close_24), contentDescription = "Remove $rule")
-                            },
-                        )
-                    }
+                rules.forEachIndexed { index, rule ->
+                    EntryRow(
+                        value = rule,
+                        label = "Rule",
+                        onValueChange = { onUpdate(index, it) },
+                        onRemove = { onRemove(index) },
+                    )
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = newRule,
-                    onValueChange = { newRule = it },
-                    label = { Text("Add rule") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { commit() }),
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { commit() }) {
-                    Text("Add")
-                }
+            Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+                Text("Add rule")
             }
+        }
+    }
+}
+
+@Composable
+private fun EntryRow(
+    value: String,
+    label: String,
+    onValueChange: (String) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            singleLine = true,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        IconButton(onClick = onRemove) {
+            Icon(painterResource(R.drawable.ic_close_24), contentDescription = "Remove")
         }
     }
 }
