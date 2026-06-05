@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — MC SMS Forwarder</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem; color: #1a1a1a; background: #fff; }
+        @media (prefers-color-scheme: dark) { body { color: #e6e6e6; background: #121212; } a { color: #8ab4f8; } }
+        h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+        h2 { font-size: 1.25rem; margin-top: 2rem; border-bottom: 1px solid rgba(128,128,128,0.3); padding-bottom: 0.3rem; }
+        .updated { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+        ul { padding-left: 1.4rem; }
+        code { background: rgba(128,128,128,0.15); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+        footer { margin-top: 3rem; font-size: 0.85rem; color: #888; border-top: 1px solid rgba(128,128,128,0.3); padding-top: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy</h1>
+    <p class="updated">MC SMS Forwarder (Multi-Channel) &middot; Last updated: 5 June 2026</p>
+
+    <p>This Privacy Policy explains how the <strong>MC SMS Forwarder (Multi-Channel)</strong> application (the &ldquo;App&rdquo;) handles information. The App is a personal utility that forwards incoming SMS messages from the device on which it is installed to one or more destinations chosen by the device owner (the WhatsApp Cloud API, Telegram, and/or another phone number via SMS).</p>
+
+    <h2>Who operates this App</h2>
+    <p>This App is operated by <strong>[YOUR NAME OR ORGANIZATION]</strong> (&ldquo;we&rdquo;, &ldquo;us&rdquo;). For any questions about this policy or your data, contact us at <strong>[YOUR CONTACT EMAIL]</strong>.</p>
+
+    <h2>Information the App processes</h2>
+    <ul>
+        <li><strong>SMS message content and sender.</strong> When an SMS arrives, the App reads the sender and message body to decide whether it matches the forwarding rules you configured. Matching messages are forwarded, unchanged, to the destinations you enabled.</li>
+        <li><strong>Configuration you enter.</strong> Allowed senders, matching rules, forwarding templates, and destination identifiers (WhatsApp recipient number, Telegram chat ID, SMS destination number) are stored locally on the device.</li>
+        <li><strong>Credentials.</strong> The WhatsApp Cloud API access token and the Telegram bot token are stored encrypted at rest on the device and are used only to authenticate requests to those services. They are never displayed back in the interface and are never written to logs.</li>
+        <li><strong>Local activity log.</strong> The App keeps a short, on-device log of forwarding activity (timestamps and outcomes) for troubleshooting. Logs are pruned automatically and never contain credentials.</li>
+    </ul>
+
+    <h2>How information is used</h2>
+    <p>The App processes the information above for the sole purpose of evaluating your forwarding rules and delivering matching messages to the destinations you configured. The App does not use your data for advertising, profiling, or any unrelated purpose.</p>
+
+    <h2>Where data is stored and who receives it</h2>
+    <ul>
+        <li>All configuration, credentials, and logs remain <strong>on your device</strong>. We do not operate any server that collects or stores your data.</li>
+        <li>When a message matches your rules, its content is transmitted to the destination services <strong>you</strong> selected:
+            <ul>
+                <li><strong>WhatsApp Cloud API</strong> (operated by Meta Platforms, Inc.) — subject to Meta&rsquo;s privacy terms.</li>
+                <li><strong>Telegram Bot API</strong> (operated by Telegram) — subject to Telegram&rsquo;s privacy terms.</li>
+                <li><strong>SMS</strong> — delivered through your mobile carrier.</li>
+            </ul>
+        </li>
+        <li>We do not sell, rent, or share your data with any other third party.</li>
+    </ul>
+
+    <h2>Data retention</h2>
+    <p>Configuration and credentials persist on the device until you change them or uninstall the App. The on-device activity log is pruned automatically (oldest entries removed after a fixed period or once a size limit is reached). Uninstalling the App removes all locally stored data.</p>
+
+    <h2>Security</h2>
+    <p>Credentials are stored using the device&rsquo;s encrypted storage. Network requests to the WhatsApp Cloud API and the Telegram Bot API are made over HTTPS. Because the App runs entirely on your device, the security of that data also depends on the security of your device.</p>
+
+    <h2>Your choices</h2>
+    <ul>
+        <li>You control which senders and message patterns are forwarded and to which destinations.</li>
+        <li>A master switch lets you disable all forwarding at any time.</li>
+        <li>You can clear stored credentials and configuration in the App, or remove everything by uninstalling the App.</li>
+    </ul>
+
+    <h2>Children&rsquo;s privacy</h2>
+    <p>This App is a personal utility and is not directed to children. It does not knowingly collect information from children.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>We may update this Privacy Policy from time to time. The &ldquo;Last updated&rdquo; date at the top reflects the latest revision.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this Privacy Policy may be directed to <strong>[YOUR CONTACT EMAIL]</strong>.</p>
+
+    <footer>
+        MC SMS Forwarder (Multi-Channel). This document is provided to satisfy the privacy-policy requirement for use of the WhatsApp Cloud API and other messaging platforms.
+    </footer>
+</body>
+</html>
