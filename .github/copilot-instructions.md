@@ -7,7 +7,7 @@
 .\gradlew.bat :app:installDebug           # build + install on connected device/emulator
 ```
 
-No test suite or linter is configured.
+No dedicated test suite is configured. Use Gradle lint for static checks.
 
 ## Architecture
 
@@ -86,10 +86,11 @@ line-oriented format. WhatsApp credentials live under keys defined in `WhatsAppC
 the WhatsApp channel above), so there are no template prefs. Telegram: `tgEnabled` (default
 false), `tgChatId` (`TelegramConfig`). SMS: `smsEnabled` (default false) and
 `forwardTo` — the destination number (`SmsConfig`). **Secrets (the WhatsApp access token `waAccessToken` and
-the Telegram bot token `tgBotToken`) are NOT in this file** — they live encrypted-at-rest in a
-separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via `SecureStore`. Configs read tokens by
-calling `SecureStore.read(context, …)`, so `WhatsAppConfig.load`/`TelegramConfig.load` take a
-`Context` (not a `SharedPreferences`).
+the Telegram bot token `tgBotToken`) are NOT in this file** — `SecureStore` encrypts them with
+AES/GCM using a key held by Android Keystore, then stores the ciphertext in the private
+`mc_sms_fwd_secure` preferences file. Configs read tokens by calling
+`SecureStore.read(context, …)`, so `WhatsAppConfig.load`/`TelegramConfig.load` take a `Context`
+(not a `SharedPreferences`).
 
 **Screens** are Compose, each backed by an `AndroidViewModel`. Edits mutate in-memory draft
 `StateFlow`s and are persisted only when the user taps the screen's explicit **Save** button (no
@@ -114,12 +115,12 @@ significant); blank rows are dropped on save and ignored by the live pipeline.
 - Release signing is opt-in via Gradle properties (`RELEASE_KEYSTORE_PATH`, etc.). No keystore
   or access token is committed to the repository.
 - The WhatsApp access token and Telegram bot token are stored **encrypted at rest** via
-  `SecureStore` (`EncryptedSharedPreferences`), never in the plaintext `mc_sms_fwd_wa` prefs —
+  `SecureStore` (AES/GCM with an Android Keystore-held key), never in the plaintext `mc_sms_fwd_wa` prefs —
   never write them to logs, never include them in error messages, never paste them into bug
   reports. In the Settings UI the token fields are **write-only**: the saved value is never
-  re-displayed (the field loads blank with a "saved" helper text); typing replaces the stored
-  token, while leaving the field blank keeps the existing one. The SMS channel has no secret (it
-  uses the device modem).
+  re-displayed (the field loads with a bullet mask); typing replaces the stored token, while
+  leaving the mask untouched keeps the existing one. The SMS channel has no secret (it uses the
+  device modem).
 - **`FiltersViewModel.runTest` is a dry-run mirror of the live pipeline.** The Filters screen has
   an inline "Test a message" card (sample sender + message) that subjects the input to the
   **currently displayed (possibly unsaved) draft** filters — draft senders, draft rules (match any,

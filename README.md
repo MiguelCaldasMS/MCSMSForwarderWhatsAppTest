@@ -8,7 +8,7 @@ Listens for incoming SMS on an Android device, runs them through a sender/regex 
 
 Each channel is independently toggleable; enable one, two, or all three at once.
 
-> **Test variant.** The WhatsApp access token and Telegram bot token are stored **encrypted at rest** (Android Keystore-backed `EncryptedSharedPreferences`, separate from the app's plaintext `SharedPreferences`) and are **write-only** in the UI — once saved they are never re-displayed. The SMS channel needs no token — it uses the device modem. Even so, only install on a device you fully control, and use the narrowest credentials you can.
+> **Test variant.** The WhatsApp access token and Telegram bot token are stored **encrypted at rest** (AES/GCM using a key held by Android Keystore, separate from the app's plaintext `SharedPreferences`) and are **write-only** in the UI — once saved they are never re-displayed. The SMS channel needs no token — it uses the device modem. Even so, only install on a device you fully control, and use the narrowest credentials you can.
 
 ## Screenshots
 
@@ -166,7 +166,7 @@ Single-module Android app (`:app`), Kotlin. The UI is a single-activity Jetpack 
 
 `WhatsAppCloudChannel`, `TelegramChannel`, and `SmsChannel` are sibling singletons. The two HTTP channels share `HttpJsonClient` (a thin `HttpURLConnection` wrapper) and each run on their own single-thread daemon executor (`wa-sender`, `tg-sender`, both built via `singleThreadDaemonExecutor`), 10 s connect / 20 s read, and report `SEND OK`/`SEND FAILED` with the HTTP status and provider-specific error summary (Meta `error.{code,type,message}` for WhatsApp, Telegram `error_code` + `description` for Telegram). Neither ever logs its bearer/bot token. `SmsChannel` dispatches through `SmsManager.sendMultipartTextMessage` and registers a private result receiver that logs the modem's per-segment outcome. Stats are owned solely by `SmsReceiver` — the channels only log.
 
-Secrets (the WhatsApp access token and Telegram bot token) live in a separate `EncryptedSharedPreferences` file (`mc_sms_fwd_secure`) via the `SecureStore` singleton. `WhatsAppConfig.load` / `TelegramConfig.load` take a `Context` so they can read those tokens; everything else (toggles, phone numbers, chat IDs, lists, logs, stats) stays in the plaintext `mc_sms_fwd_wa` prefs.
+Secrets (the WhatsApp access token and Telegram bot token) are encrypted by the `SecureStore` singleton with AES/GCM using a key held by Android Keystore, then stored in the private `mc_sms_fwd_secure` preferences file. `WhatsAppConfig.load` / `TelegramConfig.load` take a `Context` so they can read those tokens; everything else (toggles, phone numbers, chat IDs, lists, logs, stats) stays in the plaintext `mc_sms_fwd_wa` prefs.
 
 ## License
 

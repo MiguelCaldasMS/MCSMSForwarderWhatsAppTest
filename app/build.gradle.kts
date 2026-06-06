@@ -43,10 +43,6 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
@@ -75,7 +71,6 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.security.crypto)
 
     // Jetpack Compose
     implementation(libs.androidx.activity.compose)
